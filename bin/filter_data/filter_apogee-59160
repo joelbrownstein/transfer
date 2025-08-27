@@ -1,0 +1,471 @@
+mjd=59160; files=['apR-a-35980001.apz', 'apR-a-35980002.apz', 'apR-a-35980003.apz', 'apR-a-35980004.apz', 'apR-a-35980005.apz', 'apR-a-35980006.apz', 'apR-a-35980007.apz', 'apR-a-35980008.apz', 'apR-a-35980009.apz', 'apR-a-35980010.apz', 'apR-a-35980011.apz', 'apR-a-35980012.apz', 'apR-a-35980013.apz', 'apR-a-35980014.apz', 'apR-a-35980015.apz', 'apR-a-35980016.apz', 'apR-a-35980017.apz', 'apR-a-35980018.apz', 'apR-a-35980019.apz', 'apR-a-35980020.apz', 'apR-a-35980021.apz', 'apR-a-35980022.apz', 'apR-a-35980023.apz', 'apR-a-35980024.apz', 'apR-a-35980025.apz', 'apR-a-35980026.apz', 'apR-a-35980027.apz', 'apR-a-35980028.apz', 'apR-a-35980029.apz', 'apR-a-35980030.apz', 'apR-a-35980031.apz', 'apR-a-35980032.apz', 'apR-a-35980033.apz', 'apR-a-35980034.apz', 'apR-a-35980035.apz', 'apR-a-35980036.apz', 'apR-a-35980037.apz', 'apR-a-35980038.apz', 'apR-a-35980039.apz', 'apR-a-35980040.apz', 'apR-a-35980041.apz', 'apR-a-35980042.apz', 'apR-a-35980043.apz', 'apR-a-35980044.apz', 'apR-a-35980045.apz', 'apR-a-35980046.apz', 'apR-a-35980047.apz', 'apR-a-35980048.apz', 'apR-a-35980049.apz', 'apR-a-35980050.apz', 'apR-a-35980051.apz', 'apR-a-35980052.apz', 'apR-a-35980053.apz', 'apR-a-35980054.apz', 'apR-a-35980055.apz', 'apR-a-35980056.apz', 'apR-a-35980057.apz', 'apR-a-35980058.apz', 'apR-a-35980059.apz', 'apR-a-35980060.apz', 'apR-a-35980061.apz', 'apR-a-35980062.apz', 'apR-a-35980063.apz', 'apR-b-35980001.apz', 'apR-b-35980002.apz', 'apR-b-35980003.apz', 'apR-b-35980004.apz', 'apR-b-35980005.apz', 'apR-b-35980006.apz', 'apR-b-35980007.apz', 'apR-b-35980008.apz', 'apR-b-35980009.apz', 'apR-b-35980010.apz', 'apR-b-35980011.apz', 'apR-b-35980012.apz', 'apR-b-35980013.apz', 'apR-b-35980014.apz', 'apR-b-35980015.apz', 'apR-b-35980016.apz', 'apR-b-35980017.apz', 'apR-b-35980018.apz', 'apR-b-35980019.apz', 'apR-b-35980020.apz', 'apR-b-35980021.apz', 'apR-b-35980022.apz', 'apR-b-35980023.apz', 'apR-b-35980024.apz', 'apR-b-35980025.apz', 'apR-b-35980026.apz', 'apR-b-35980027.apz', 'apR-b-35980028.apz', 'apR-b-35980029.apz', 'apR-b-35980030.apz', 'apR-b-35980031.apz', 'apR-b-35980032.apz', 'apR-b-35980033.apz', 'apR-b-35980034.apz', 'apR-b-35980035.apz', 'apR-b-35980036.apz', 'apR-b-35980037.apz', 'apR-b-35980038.apz', 'apR-b-35980039.apz', 'apR-b-35980040.apz', 'apR-b-35980041.apz', 'apR-b-35980042.apz', 'apR-b-35980043.apz', 'apR-b-35980044.apz', 'apR-b-35980045.apz', 'apR-b-35980046.apz', 'apR-b-35980047.apz', 'apR-b-35980048.apz', 'apR-b-35980049.apz', 'apR-b-35980050.apz', 'apR-b-35980051.apz', 'apR-b-35980052.apz', 'apR-b-35980053.apz', 'apR-b-35980054.apz', 'apR-b-35980055.apz', 'apR-b-35980056.apz', 'apR-b-35980057.apz', 'apR-b-35980058.apz', 'apR-b-35980059.apz', 'apR-b-35980060.apz', 'apR-b-35980061.apz', 'apR-b-35980062.apz', 'apR-b-35980063.apz', 'apR-c-35980001.apz', 'apR-c-35980002.apz', 'apR-c-35980003.apz', 'apR-c-35980004.apz', 'apR-c-35980005.apz', 'apR-c-35980006.apz', 'apR-c-35980007.apz', 'apR-c-35980008.apz', 'apR-c-35980009.apz', 'apR-c-35980010.apz', 'apR-c-35980011.apz', 'apR-c-35980012.apz', 'apR-c-35980013.apz', 'apR-c-35980014.apz', 'apR-c-35980015.apz', 'apR-c-35980016.apz', 'apR-c-35980017.apz', 'apR-c-35980018.apz', 'apR-c-35980019.apz', 'apR-c-35980020.apz', 'apR-c-35980021.apz', 'apR-c-35980022.apz', 'apR-c-35980023.apz', 'apR-c-35980024.apz', 'apR-c-35980025.apz', 'apR-c-35980026.apz', 'apR-c-35980027.apz', 'apR-c-35980028.apz', 'apR-c-35980029.apz', 'apR-c-35980030.apz', 'apR-c-35980031.apz', 'apR-c-35980032.apz', 'apR-c-35980033.apz', 'apR-c-35980034.apz', 'apR-c-35980035.apz', 'apR-c-35980036.apz', 'apR-c-35980037.apz', 'apR-c-35980038.apz', 'apR-c-35980039.apz', 'apR-c-35980040.apz', 'apR-c-35980041.apz', 'apR-c-35980042.apz', 'apR-c-35980043.apz', 'apR-c-35980044.apz', 'apR-c-35980045.apz', 'apR-c-35980046.apz', 'apR-c-35980047.apz', 'apR-c-35980048.apz', 'apR-c-35980049.apz', 'apR-c-35980050.apz', 'apR-c-35980051.apz', 'apR-c-35980052.apz', 'apR-c-35980053.apz', 'apR-c-35980054.apz', 'apR-c-35980055.apz', 'apR-c-35980056.apz', 'apR-c-35980057.apz', 'apR-c-35980058.apz', 'apR-c-35980059.apz', 'apR-c-35980060.apz', 'apR-c-35980061.apz', 'apR-c-35980062.apz', 'apR-c-35980063.apz']
+
+Getting Headers for 'apR-a-35980001.apz'
+Getting Headers for 'apR-a-35980002.apz'
+Getting Headers for 'apR-a-35980003.apz'
+Getting Headers for 'apR-a-35980004.apz'
+Getting Headers for 'apR-a-35980005.apz'
+Getting Headers for 'apR-a-35980006.apz'
+Getting Headers for 'apR-a-35980007.apz'
+Getting Headers for 'apR-a-35980008.apz'
+Getting Headers for 'apR-a-35980009.apz'
+Getting Headers for 'apR-a-35980010.apz'
+Getting Headers for 'apR-a-35980011.apz'
+Getting Headers for 'apR-a-35980012.apz'
+Getting Headers for 'apR-a-35980013.apz'
+Getting Headers for 'apR-a-35980014.apz'
+Getting Headers for 'apR-a-35980015.apz'
+Getting Headers for 'apR-a-35980016.apz'
+Getting Headers for 'apR-a-35980017.apz'
+Getting Headers for 'apR-a-35980018.apz'
+Getting Headers for 'apR-a-35980019.apz'
+Getting Headers for 'apR-a-35980020.apz'
+Getting Headers for 'apR-a-35980021.apz'
+Getting Headers for 'apR-a-35980022.apz'
+Getting Headers for 'apR-a-35980023.apz'
+Getting Headers for 'apR-a-35980024.apz'
+Getting Headers for 'apR-a-35980025.apz'
+Getting Headers for 'apR-a-35980026.apz'
+Getting Headers for 'apR-a-35980027.apz'
+Getting Headers for 'apR-a-35980028.apz'
+Getting Headers for 'apR-a-35980029.apz'
+Getting Headers for 'apR-a-35980030.apz'
+Getting Headers for 'apR-a-35980031.apz'
+Getting Headers for 'apR-a-35980032.apz'
+Getting Headers for 'apR-a-35980033.apz'
+Getting Headers for 'apR-a-35980034.apz'
+Getting Headers for 'apR-a-35980035.apz'
+Getting Headers for 'apR-a-35980036.apz'
+Getting Headers for 'apR-a-35980037.apz'
+Getting Headers for 'apR-a-35980038.apz'
+Getting Headers for 'apR-a-35980039.apz'
+Getting Headers for 'apR-a-35980040.apz'
+Getting Headers for 'apR-a-35980041.apz'
+Getting Headers for 'apR-a-35980042.apz'
+Getting Headers for 'apR-a-35980043.apz'
+Getting Headers for 'apR-a-35980044.apz'
+Getting Headers for 'apR-a-35980045.apz'
+Getting Headers for 'apR-a-35980046.apz'
+Getting Headers for 'apR-a-35980047.apz'
+Getting Headers for 'apR-a-35980048.apz'
+Getting Headers for 'apR-a-35980049.apz'
+Getting Headers for 'apR-a-35980050.apz'
+Getting Headers for 'apR-a-35980051.apz'
+Getting Headers for 'apR-a-35980052.apz'
+Getting Headers for 'apR-a-35980053.apz'
+Getting Headers for 'apR-a-35980054.apz'
+Getting Headers for 'apR-a-35980055.apz'
+Getting Headers for 'apR-a-35980056.apz'
+Getting Headers for 'apR-a-35980057.apz'
+Getting Headers for 'apR-a-35980058.apz'
+Getting Headers for 'apR-a-35980059.apz'
+Getting Headers for 'apR-a-35980060.apz'
+Getting Headers for 'apR-a-35980061.apz'
+Getting Headers for 'apR-a-35980062.apz'
+Getting Headers for 'apR-a-35980063.apz'
+Getting Headers for 'apR-b-35980001.apz'
+Getting Headers for 'apR-b-35980002.apz'
+Getting Headers for 'apR-b-35980003.apz'
+Getting Headers for 'apR-b-35980004.apz'
+Getting Headers for 'apR-b-35980005.apz'
+Getting Headers for 'apR-b-35980006.apz'
+Getting Headers for 'apR-b-35980007.apz'
+Getting Headers for 'apR-b-35980008.apz'
+Getting Headers for 'apR-b-35980009.apz'
+Getting Headers for 'apR-b-35980010.apz'
+Getting Headers for 'apR-b-35980011.apz'
+Getting Headers for 'apR-b-35980012.apz'
+Getting Headers for 'apR-b-35980013.apz'
+Getting Headers for 'apR-b-35980014.apz'
+Getting Headers for 'apR-b-35980015.apz'
+Getting Headers for 'apR-b-35980016.apz'
+Getting Headers for 'apR-b-35980017.apz'
+Getting Headers for 'apR-b-35980018.apz'
+Getting Headers for 'apR-b-35980019.apz'
+Getting Headers for 'apR-b-35980020.apz'
+Getting Headers for 'apR-b-35980021.apz'
+Getting Headers for 'apR-b-35980022.apz'
+Getting Headers for 'apR-b-35980023.apz'
+Getting Headers for 'apR-b-35980024.apz'
+Getting Headers for 'apR-b-35980025.apz'
+Getting Headers for 'apR-b-35980026.apz'
+Getting Headers for 'apR-b-35980027.apz'
+Getting Headers for 'apR-b-35980028.apz'
+Getting Headers for 'apR-b-35980029.apz'
+Getting Headers for 'apR-b-35980030.apz'
+Getting Headers for 'apR-b-35980031.apz'
+Getting Headers for 'apR-b-35980032.apz'
+Getting Headers for 'apR-b-35980033.apz'
+Getting Headers for 'apR-b-35980034.apz'
+Getting Headers for 'apR-b-35980035.apz'
+Getting Headers for 'apR-b-35980036.apz'
+Getting Headers for 'apR-b-35980037.apz'
+Getting Headers for 'apR-b-35980038.apz'
+Getting Headers for 'apR-b-35980039.apz'
+Getting Headers for 'apR-b-35980040.apz'
+Getting Headers for 'apR-b-35980041.apz'
+Getting Headers for 'apR-b-35980042.apz'
+Getting Headers for 'apR-b-35980043.apz'
+Getting Headers for 'apR-b-35980044.apz'
+Getting Headers for 'apR-b-35980045.apz'
+Getting Headers for 'apR-b-35980046.apz'
+Getting Headers for 'apR-b-35980047.apz'
+Getting Headers for 'apR-b-35980048.apz'
+Getting Headers for 'apR-b-35980049.apz'
+Getting Headers for 'apR-b-35980050.apz'
+Getting Headers for 'apR-b-35980051.apz'
+Getting Headers for 'apR-b-35980052.apz'
+Getting Headers for 'apR-b-35980053.apz'
+Getting Headers for 'apR-b-35980054.apz'
+Getting Headers for 'apR-b-35980055.apz'
+Getting Headers for 'apR-b-35980056.apz'
+Getting Headers for 'apR-b-35980057.apz'
+Getting Headers for 'apR-b-35980058.apz'
+Getting Headers for 'apR-b-35980059.apz'
+Getting Headers for 'apR-b-35980060.apz'
+Getting Headers for 'apR-b-35980061.apz'
+Getting Headers for 'apR-b-35980062.apz'
+Getting Headers for 'apR-b-35980063.apz'
+Getting Headers for 'apR-c-35980001.apz'
+Getting Headers for 'apR-c-35980002.apz'
+Getting Headers for 'apR-c-35980003.apz'
+Getting Headers for 'apR-c-35980004.apz'
+Getting Headers for 'apR-c-35980005.apz'
+Getting Headers for 'apR-c-35980006.apz'
+Getting Headers for 'apR-c-35980007.apz'
+Getting Headers for 'apR-c-35980008.apz'
+Getting Headers for 'apR-c-35980009.apz'
+Getting Headers for 'apR-c-35980010.apz'
+Getting Headers for 'apR-c-35980011.apz'
+Getting Headers for 'apR-c-35980012.apz'
+Getting Headers for 'apR-c-35980013.apz'
+Getting Headers for 'apR-c-35980014.apz'
+Getting Headers for 'apR-c-35980015.apz'
+Getting Headers for 'apR-c-35980016.apz'
+Getting Headers for 'apR-c-35980017.apz'
+Getting Headers for 'apR-c-35980018.apz'
+Getting Headers for 'apR-c-35980019.apz'
+Getting Headers for 'apR-c-35980020.apz'
+Getting Headers for 'apR-c-35980021.apz'
+Getting Headers for 'apR-c-35980022.apz'
+Getting Headers for 'apR-c-35980023.apz'
+Getting Headers for 'apR-c-35980024.apz'
+Getting Headers for 'apR-c-35980025.apz'
+Getting Headers for 'apR-c-35980026.apz'
+Getting Headers for 'apR-c-35980027.apz'
+Getting Headers for 'apR-c-35980028.apz'
+Getting Headers for 'apR-c-35980029.apz'
+Getting Headers for 'apR-c-35980030.apz'
+Getting Headers for 'apR-c-35980031.apz'
+Getting Headers for 'apR-c-35980032.apz'
+Getting Headers for 'apR-c-35980033.apz'
+Getting Headers for 'apR-c-35980034.apz'
+Getting Headers for 'apR-c-35980035.apz'
+Getting Headers for 'apR-c-35980036.apz'
+Getting Headers for 'apR-c-35980037.apz'
+Getting Headers for 'apR-c-35980038.apz'
+Getting Headers for 'apR-c-35980039.apz'
+Getting Headers for 'apR-c-35980040.apz'
+Getting Headers for 'apR-c-35980041.apz'
+Getting Headers for 'apR-c-35980042.apz'
+Getting Headers for 'apR-c-35980043.apz'
+Getting Headers for 'apR-c-35980044.apz'
+Getting Headers for 'apR-c-35980045.apz'
+Getting Headers for 'apR-c-35980046.apz'
+Getting Headers for 'apR-c-35980047.apz'
+Getting Headers for 'apR-c-35980048.apz'
+Getting Headers for 'apR-c-35980049.apz'
+Getting Headers for 'apR-c-35980050.apz'
+Getting Headers for 'apR-c-35980051.apz'
+Getting Headers for 'apR-c-35980052.apz'
+Getting Headers for 'apR-c-35980053.apz'
+Getting Headers for 'apR-c-35980054.apz'
+Getting Headers for 'apR-c-35980055.apz'
+Getting Headers for 'apR-c-35980056.apz'
+Getting Headers for 'apR-c-35980057.apz'
+Getting Headers for 'apR-c-35980058.apz'
+Getting Headers for 'apR-c-35980059.apz'
+Getting Headers for 'apR-c-35980060.apz'
+Getting Headers for 'apR-c-35980061.apz'
+Getting Headers for 'apR-c-35980062.apz'
+Getting Headers for 'apR-c-35980063.apz'
+Checking 'apR-a-35980001.apz'
+Checking 'apR-a-35980002.apz'
+Checking 'apR-a-35980003.apz'
+Checking 'apR-a-35980004.apz'
+Checking 'apR-a-35980005.apz'
+Checking 'apR-a-35980006.apz'
+Checking 'apR-a-35980007.apz'
+Checking 'apR-a-35980008.apz'
+Checking 'apR-a-35980009.apz'
+Checking 'apR-a-35980010.apz'
+Checking 'apR-a-35980011.apz'
+Checking 'apR-a-35980012.apz'
+Checking 'apR-a-35980013.apz'
+Checking 'apR-a-35980014.apz'
+Checking 'apR-a-35980015.apz'
+Checking 'apR-a-35980016.apz'
+Checking 'apR-a-35980017.apz'
+Checking 'apR-a-35980018.apz'
+Checking 'apR-a-35980019.apz'
+Checking 'apR-a-35980020.apz'
+Checking 'apR-a-35980021.apz'
+Checking 'apR-a-35980022.apz'
+Checking 'apR-a-35980023.apz'
+Checking 'apR-a-35980024.apz'
+Checking 'apR-a-35980025.apz'
+Checking 'apR-a-35980026.apz'
+Checking 'apR-a-35980027.apz'
+Checking 'apR-a-35980028.apz'
+Checking 'apR-a-35980029.apz'
+Checking 'apR-a-35980030.apz'
+Checking 'apR-a-35980031.apz'
+Checking 'apR-a-35980032.apz'
+Checking 'apR-a-35980033.apz'
+Checking 'apR-a-35980034.apz'
+Checking 'apR-a-35980035.apz'
+Checking 'apR-a-35980036.apz'
+Checking 'apR-a-35980037.apz'
+Checking 'apR-a-35980038.apz'
+Checking 'apR-a-35980039.apz'
+Checking 'apR-a-35980040.apz'
+Checking 'apR-a-35980041.apz'
+Checking 'apR-a-35980042.apz'
+Checking 'apR-a-35980043.apz'
+Checking 'apR-a-35980044.apz'
+Checking 'apR-a-35980045.apz'
+Checking 'apR-a-35980046.apz'
+Checking 'apR-a-35980047.apz'
+Checking 'apR-a-35980048.apz'
+Checking 'apR-a-35980049.apz'
+Checking 'apR-a-35980050.apz'
+Checking 'apR-a-35980051.apz'
+Checking 'apR-a-35980052.apz'
+Checking 'apR-a-35980053.apz'
+Checking 'apR-a-35980054.apz'
+Checking 'apR-a-35980055.apz'
+Checking 'apR-a-35980056.apz'
+Checking 'apR-a-35980057.apz'
+Checking 'apR-a-35980058.apz'
+Checking 'apR-a-35980059.apz'
+Checking 'apR-a-35980060.apz'
+Checking 'apR-a-35980061.apz'
+Checking 'apR-a-35980062.apz'
+Checking 'apR-a-35980063.apz'
+Checking 'apR-b-35980001.apz'
+Checking 'apR-b-35980002.apz'
+Checking 'apR-b-35980003.apz'
+Checking 'apR-b-35980004.apz'
+Checking 'apR-b-35980005.apz'
+Checking 'apR-b-35980006.apz'
+Checking 'apR-b-35980007.apz'
+Checking 'apR-b-35980008.apz'
+Checking 'apR-b-35980009.apz'
+Checking 'apR-b-35980010.apz'
+Checking 'apR-b-35980011.apz'
+Checking 'apR-b-35980012.apz'
+Checking 'apR-b-35980013.apz'
+Checking 'apR-b-35980014.apz'
+Checking 'apR-b-35980015.apz'
+Checking 'apR-b-35980016.apz'
+Checking 'apR-b-35980017.apz'
+Checking 'apR-b-35980018.apz'
+Checking 'apR-b-35980019.apz'
+Checking 'apR-b-35980020.apz'
+Checking 'apR-b-35980021.apz'
+Checking 'apR-b-35980022.apz'
+Checking 'apR-b-35980023.apz'
+Checking 'apR-b-35980024.apz'
+Checking 'apR-b-35980025.apz'
+Checking 'apR-b-35980026.apz'
+Checking 'apR-b-35980027.apz'
+Checking 'apR-b-35980028.apz'
+Checking 'apR-b-35980029.apz'
+Checking 'apR-b-35980030.apz'
+Checking 'apR-b-35980031.apz'
+Checking 'apR-b-35980032.apz'
+Checking 'apR-b-35980033.apz'
+Checking 'apR-b-35980034.apz'
+Checking 'apR-b-35980035.apz'
+Checking 'apR-b-35980036.apz'
+Checking 'apR-b-35980037.apz'
+Checking 'apR-b-35980038.apz'
+Checking 'apR-b-35980039.apz'
+Checking 'apR-b-35980040.apz'
+Checking 'apR-b-35980041.apz'
+Checking 'apR-b-35980042.apz'
+Checking 'apR-b-35980043.apz'
+Checking 'apR-b-35980044.apz'
+Checking 'apR-b-35980045.apz'
+Checking 'apR-b-35980046.apz'
+Checking 'apR-b-35980047.apz'
+Checking 'apR-b-35980048.apz'
+Checking 'apR-b-35980049.apz'
+Checking 'apR-b-35980050.apz'
+Checking 'apR-b-35980051.apz'
+Checking 'apR-b-35980052.apz'
+Checking 'apR-b-35980053.apz'
+Checking 'apR-b-35980054.apz'
+Checking 'apR-b-35980055.apz'
+Checking 'apR-b-35980056.apz'
+Checking 'apR-b-35980057.apz'
+Checking 'apR-b-35980058.apz'
+Checking 'apR-b-35980059.apz'
+Checking 'apR-b-35980060.apz'
+Checking 'apR-b-35980061.apz'
+Checking 'apR-b-35980062.apz'
+Checking 'apR-b-35980063.apz'
+Checking 'apR-c-35980001.apz'
+Checking 'apR-c-35980002.apz'
+Checking 'apR-c-35980003.apz'
+Checking 'apR-c-35980004.apz'
+Checking 'apR-c-35980005.apz'
+Checking 'apR-c-35980006.apz'
+Checking 'apR-c-35980007.apz'
+Checking 'apR-c-35980008.apz'
+Checking 'apR-c-35980009.apz'
+Checking 'apR-c-35980010.apz'
+Checking 'apR-c-35980011.apz'
+Checking 'apR-c-35980012.apz'
+Checking 'apR-c-35980013.apz'
+Checking 'apR-c-35980014.apz'
+Checking 'apR-c-35980015.apz'
+Checking 'apR-c-35980016.apz'
+Checking 'apR-c-35980017.apz'
+Checking 'apR-c-35980018.apz'
+Checking 'apR-c-35980019.apz'
+Checking 'apR-c-35980020.apz'
+Checking 'apR-c-35980021.apz'
+Checking 'apR-c-35980022.apz'
+Checking 'apR-c-35980023.apz'
+Checking 'apR-c-35980024.apz'
+Checking 'apR-c-35980025.apz'
+Checking 'apR-c-35980026.apz'
+Checking 'apR-c-35980027.apz'
+Checking 'apR-c-35980028.apz'
+Checking 'apR-c-35980029.apz'
+Checking 'apR-c-35980030.apz'
+Checking 'apR-c-35980031.apz'
+Checking 'apR-c-35980032.apz'
+Checking 'apR-c-35980033.apz'
+Checking 'apR-c-35980034.apz'
+Checking 'apR-c-35980035.apz'
+Checking 'apR-c-35980036.apz'
+Checking 'apR-c-35980037.apz'
+Checking 'apR-c-35980038.apz'
+Checking 'apR-c-35980039.apz'
+Checking 'apR-c-35980040.apz'
+Checking 'apR-c-35980041.apz'
+Checking 'apR-c-35980042.apz'
+Checking 'apR-c-35980043.apz'
+Checking 'apR-c-35980044.apz'
+Checking 'apR-c-35980045.apz'
+Checking 'apR-c-35980046.apz'
+Checking 'apR-c-35980047.apz'
+Checking 'apR-c-35980048.apz'
+Checking 'apR-c-35980049.apz'
+Checking 'apR-c-35980050.apz'
+Checking 'apR-c-35980051.apz'
+Checking 'apR-c-35980052.apz'
+Checking 'apR-c-35980053.apz'
+Checking 'apR-c-35980054.apz'
+Checking 'apR-c-35980055.apz'
+Checking 'apR-c-35980056.apz'
+Checking 'apR-c-35980057.apz'
+Checking 'apR-c-35980058.apz'
+Checking 'apR-c-35980059.apz'
+Checking 'apR-c-35980060.apz'
+Checking 'apR-c-35980061.apz'
+Checking 'apR-c-35980062.apz'
+Checking 'apR-c-35980063.apz'
+SDSS-V Science Exposures
+-------------------------
+-------------------------
+Day Calibrations
+-------------------------
+apR-a-35980003.apz
+apR-a-35980004.apz
+apR-a-35980005.apz
+apR-a-35980006.apz
+apR-a-35980007.apz
+apR-a-35980052.apz
+apR-a-35980053.apz
+apR-a-35980054.apz
+apR-a-35980055.apz
+apR-a-35980056.apz
+apR-a-35980057.apz
+apR-a-35980058.apz
+apR-a-35980060.apz
+apR-a-35980061.apz
+apR-a-35980062.apz
+apR-b-35980003.apz
+apR-b-35980004.apz
+apR-b-35980005.apz
+apR-b-35980006.apz
+apR-b-35980007.apz
+apR-b-35980052.apz
+apR-b-35980053.apz
+apR-b-35980054.apz
+apR-b-35980055.apz
+apR-b-35980056.apz
+apR-b-35980057.apz
+apR-b-35980058.apz
+apR-b-35980060.apz
+apR-b-35980061.apz
+apR-b-35980062.apz
+apR-c-35980003.apz
+apR-c-35980004.apz
+apR-c-35980005.apz
+apR-c-35980006.apz
+apR-c-35980007.apz
+apR-c-35980052.apz
+apR-c-35980053.apz
+apR-c-35980054.apz
+apR-c-35980055.apz
+apR-c-35980056.apz
+apR-c-35980057.apz
+apR-c-35980058.apz
+apR-c-35980060.apz
+apR-c-35980061.apz
+apR-c-35980062.apz
+-------------------------
+Dome Flats
+-------------------------
+-------------------------
+Dark Files
+-------------------------
+apR-a-35980001.apz
+apR-a-35980002.apz
+apR-a-35980008.apz
+apR-a-35980009.apz
+apR-a-35980010.apz
+apR-a-35980011.apz
+apR-a-35980049.apz
+apR-a-35980050.apz
+apR-a-35980051.apz
+apR-a-35980059.apz
+apR-a-35980063.apz
+apR-b-35980001.apz
+apR-b-35980002.apz
+apR-b-35980008.apz
+apR-b-35980009.apz
+apR-b-35980010.apz
+apR-b-35980011.apz
+apR-b-35980049.apz
+apR-b-35980050.apz
+apR-b-35980051.apz
+apR-b-35980059.apz
+apR-b-35980063.apz
+apR-c-35980001.apz
+apR-c-35980002.apz
+apR-c-35980008.apz
+apR-c-35980009.apz
+apR-c-35980010.apz
+apR-c-35980011.apz
+apR-c-35980049.apz
+apR-c-35980050.apz
+apR-c-35980051.apz
+apR-c-35980059.apz
+apR-c-35980063.apz
+SDSS-V: Out of 189 files, keep 78 and drop 111 (no science)
+SDSS-IV: Out of 189 files, keep 186 and drop 3

@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+from transfer import Argument, GitHub
+arg = Argument('transfer_github')
+github = GitHub(options=arg.options)
+github.set_repo()
+github.set_branch()
+if github.product == "tree":  github.set_workflow(name="Build and Test")
+github.set_date()
+github.set_latest_commit()
+github.dump_commits()
+github.touch_pull()
+
+"""
+usage: transfer_github --branch main --product datamodel -v
+usage: transfer_github --branch sdss5 --product tree -v
+"""

@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+from transfer import Transfer, Argument
+
+arg = Argument('transfer')
+options = arg.options
+options.observatory = observatory = 'lco'
+options.ini_mode = mode = 'mos'
+options.log_dir = 'log/%s' % mode
+transfer = Transfer(options = options)
+transfer.set_config()
+transfer.set_logging()
+if transfer.logging.ready:
+    program = "%s_%s" % (arg.program, mode)
+    transfer.set_process(program=program)
+    if transfer.process.ready:
+        transfer.set_sections()
+        transfer.set_current_report()
+        transfer.set_summary(mode = mode)
+        transfer.run_download()
+        transfer.run_verify()
+        transfer.run_copy()
+        transfer.run_mirror()
+        transfer.run_backup()
+        transfer.done()
+    else:
+        transfer.process.logger.critical("Detected another %s %s data transfer job running. Done!" % (observatory.upper(), mode.upper()))
+        print("TRANSFER> System in use!")
+else: print("TRANSFER> Logging not ready!")

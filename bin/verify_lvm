@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+from argparse import ArgumentParser
+from math import log10
+from sys import exit
+from os import chdir, getcwd, listdir, environ, getpid, makedirs, unlink, getlogin
+from os.path import join, exists
+from sys import exit
+from subprocess import Popen, STDOUT
+from shlex import split
+from tempfile import TemporaryFile
+from time import time, sleep
+
+class Process:
+
+    def __init__(self, program=None, mjd=None, logger=None, verbose=False):
+        self.program = program if program else "transfer"
+        self.mjd = mjd
+        self.logger = logger
+        self.verbose = verbose
+        self.set_ready()
+
+    def run(self, command=None, batch=None, ignore_error=False):
+        self.status, self.out, self.err, self.abort = (None, None, None, None)
+        if command:
+            if self.logger is not None: self.logger.debug(command)
+            stdin = open(batch) if batch and exists(batch) else None
+            stdout, stderr = (TemporaryFile(), TemporaryFile())
+            proc = self.open(command=command, stdin=stdin, stdout=stdout, stderr=stderr)
+            tstart = time()
+            while proc.poll() is None:
+                elapsed = time() - tstart
+                if elapsed > 500000:
+                    self.abort = "Process still running after more than 5 days!"
+                    proc.kill()
+                    break
+                self.sleep(seconds=10**(int(log10(elapsed))-1))
+            stdout.seek(0)
+            stderr.seek(0)
+            self.status, self.out, self.err = (proc.returncode, stdout.read().decode(), stderr.read().decode())
+            stdout.close()
+            stderr.close()
+            if self.logger is not None:
+                if self.status:
+                    (self.logger.debug if ignore_error else self.logger.error)("command return code %r" % self.status)
+                    if len(self.out) > 0: self.logger.debug("STDOUT:\n" + self.out)
+                    if len(self.err) > 0: self.logger.debug("STDERR:\n" + self.err)
+                if self.status and self.abort: self.logger.critical(self.abort)
+            if self.abort: exit(self.status)
+
+    def sleep(self, seconds=None, minutes=None):
+        seconds = (seconds if seconds else 0) + (minutes * 60 if minutes else 0)
+        sleep(seconds if seconds > 1 else 1)
+
+    def open(self, command=None, stdin=None, stdout=None, stderr=None):
+        if stdout is None: stdout = STDOUT
+        if stderr is None: stderr = STDOUT
+        return Popen(split(str(command)), stdin=stdin, stdout=stdout, stderr=stderr)
+
+    def mkdir(self, path=None, mode=0o775, silent=False):
+        if path and not exists(path):
+            makedirs(path, mode)
+            if self.verbose and not silent: print("PROCESS> CREATE: %r" % path)
+
+    def set_pid_file(self):
+        try:
+            user = getlogin()
+            pid_dir = join('/tmp',user,self.program)
+            self.mkdir(pid_dir)
+            self.pid_file = join(pid_dir, "%r.pid" % int(self.mjd)) if pid_dir and self.mjd else None
+        except Exception as e:
+            print("PROCESS>: %r" % e)
+            self.pid_file = None
+
+    def set_pid_from_file(self):
+        self.pid = None
+        if self.pid_file and exists(self.pid_file):
+            with open(self.pid_file,'r') as lines:
+                for line in lines:
+                    try:
+                        self.pid = int(line.strip())
+                        break
+                    except: pass
+
+    def pid_in_use(self):
+        pid_in_use = False
+        if self.pid:
+            self.run("ps -o command= %r" % self.pid, ignore_error=True)
+            pid_in_use = True if self.out and self.program in self.out else None
+            if pid_in_use is None and self.pid_file and exists(self.pid_file) : unlink(self.pid_file)
+        if pid_in_use and self.verbose: print("PROCESS> Found running pid in %r" % self.pid_file)
+        elif self.pid_file:
+            if self.verbose: print("PROCESS> Adding new pid in %r" % self.pid_file)
+            with open(self.pid_file,'w') as file: file.write("%r\n" % getpid())
+        return pid_in_use
+
+    def set_ready(self):
+        if self.verbose: print("PROCESS> Checking for running instance of %s" % self.program)
+        self.ready = False
+        self.set_pid_file()
+        self.set_pid_from_file()
+        self.ready = not self.pid_in_use()
+
+
+
+
+class Verify:
+
+    method = 'md5sum'
+
+    def __init__(self, mjd = None, force = None, verbose = None):
+        self.set_options()
+        self.mjd = self.options.mjd if self.options and self.options.mjd else mjd
+        self.force = self.options.force if self.options and self.options.force else force
+        self.verbose = self.options.verbose if self.options and self.options.verbose else verbose
+        self.set_lvm_data()
+        self.set_lvm_verify()
+        self.set_mjd_dir()
+        self.set_sumfile()
+        self.set_outfile()
+
+    def set_options(self):
+        parser = ArgumentParser()
+        parser.add_argument('-m', '--mjd', action='store', dest='mjd', type=int, metavar='MJD', help='Transfer this MJD')
+        parser.add_argument('-f', '--force', action='store_true', dest='force', help='Set force')
+        parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='Set verbose')
+        self.options = parser.parse_args()
+
+    def set_lvm_data(self):
+        try:
+            self.lvm_data = environ['LVM_DATA_S']
+            if not exists(self.lvm_data):
+                print("VERIFY> Nonexistent %r" % self.lvm_data)
+                self.lvm_data = None
+        except: self.lvm_data = None
+        if self.verbose: print("VERIFY> lvm_data=%r" % self.lvm_data)
+
+    def set_lvm_verify(self):
+        try:
+            self.lvm_verify = environ['LVM_VERIFY']
+            if not exists(self.lvm_verify):
+                print("VERIFY> Nonexistent %r" % self.lvm_verify)
+                self.lvm_verify = None
+        except: self.lvm_verify = None
+        if self.verbose: print("VERIFY> lvm_verify=%r" % self.lvm_verify)
+
+    def set_mjd_dir(self):
+        self.mjd_dir = join(self.lvm_data, "%s" % self.mjd) if self.lvm_data and self.mjd else None
+        if not exists(self.mjd_dir):
+            print("VERIFY> Nonexistent %r" % self.mjd_dir)
+            self.mjd_dir = None
+        if self.verbose: print("VERIFY> mjd_dir=%r" % self.mjd_dir)
+
+    def set_outfile(self):
+        self.outfile = join(self.lvm_verify, "%s.%s.o" % (self.mjd, self.method)) if self.lvm_verify and self.mjd else None
+        if exists(self.outfile):
+            force = "Overwrite enabled with --force" if self.force else "Cannot overwrite without --force"
+            if self.verbose or not self.force: print("VERIFY> Found %r [%s]" % (self.outfile, force))
+            if not self.force: self.outfile = None
+
+    def set_sumfile(self):
+        self.sumfile = join(self.mjd_dir, "%s.%s" % (self.mjd, self.method)) if self.mjd_dir and self.mjd else None
+        if not exists(self.sumfile):
+            print("VERIFY> Nonexistent %r" % self.sumfile)
+            self.sumfile = None
+        if self.verbose: print("VERIFY> sumfile=%r" % self.sumfile)
+
+    def check_sumfile(self):
+        if self.mjd_dir and self.mjd and self.sumfile:
+            current_work_dir = getcwd()
+            chdir(self.mjd_dir)
+            process = Process(program = self.method, mjd = self.mjd, logger = None)
+            method_cmd = self.method + ' --check'
+            command = "{0} {1}".format(method_cmd,self.sumfile)
+            process.run(command)
+            self.count = {'match': 0, 'mismatch': 0}
+            with open(self.outfile, 'w') as file:
+                for c in process.out.split("\n"):
+                    if len(c) > 0:
+                        l = c.rsplit(':',1)
+                        try:
+                            foo = l[1].index('OK')
+                            self.count['match'] += 1
+                        except ValueError:
+                            line = "Checksum mismatch: {0} \n".format(l[0])
+                            file.write("%s \n" % line)
+                            if self.verbose: print(line)
+                            self.count['mismatch'] += 1
+                self.check = ( self.count['mismatch'] == 0 )
+                self.message = None if self.check else "VERIFY> MJD %r Found %(mismatch)r -> FAILED, %(match)r --> MATCHED" % (self.mjd, self.count)
+                line = self.message if self.message else ( "VERIFY> %r OK." % self.mjd )
+                file.write("%s \n" % line)
+                if self.verbose: print(line)
+            chdir(current_work_dir)
+
+    def exit_message(self):
+        exit(self.message)
+
+
+verify = Verify()
+verify.check_sumfile()
+verify.exit_message()

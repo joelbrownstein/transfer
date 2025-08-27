@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+from transfer import Mirror, Argument
+
+arg = Argument('transfer_mirror')
+mirror = Mirror(options=arg.options)
+if mirror.ready:
+    if mirror.process.ready:
+        mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
+        mirror.set_item()
+        mirror.write_batch_file()
+        if not mirror.dryrun:
+            mirror.submit()
+            mirror.wait()
+            mirror.set_details()
+            mirror.set_status()
+            mirror.write_logfile()
+        mirror.done()
+    else:
+        mirror.logger.critical("Detected another %s data transfer job running. Done!" % observatory.upper())
+        print("TRANSFER> System in use!")
+else: print("TRANSFER> Logging not ready!")

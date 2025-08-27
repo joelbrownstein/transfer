@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+from astropy.io.fits import getval
+platetype = {'APOGEE-2':[], 'BHM&MWM':[]}
+imagetype = {'DomeFlat':[], 'QuartzFlat':[], 'ArcLamp':[], 'InternalFlat':[], 'Dark':[]}
+alt = {'lt31': [], 'gt31': []}
+for file in files:
+    print("Getting Headers for %r" % file)
+    hdr = getval(file,'PLATETYP',1)
+    if hdr not in platetype: platetype[hdr] = []
+    platetype[hdr].append(file)
+    hdr = getval(file,'IMAGETYP',1)
+    if hdr not in imagetype: imagetype[hdr] = []
+    imagetype[hdr].append(file)
+    try:
+        hdr0 = getval(file,'ALT',1)
+        hdr = int(hdr0)
+        if hdr<31: alt['lt31'].append(file)
+        else: alt['gt31'].append(file)
+    except:
+        print("Non-numeric value of alt=%r for file=%r" % (hdr0,file))
+science = {'sdss4': [], 'sdss5': []}
+daycal = []
+dome = {'sdss4': [], 'sdss5': []}
+dark = {'sdss4': [], 'sdss5': []}
+for file in files:
+    print("Checking %r" % file)
+    if 'Object' in imagetype and file in imagetype['Object']:
+        if file in platetype['APOGEE-2']: science['sdss4'].append(file)
+        elif file in platetype['BHM&MWM']: science['sdss5'].append(file)
+        else: print("Skipping Science Exposure %r" % file)
+    elif file in imagetype['QuartzFlat'] or file in imagetype['ArcLamp'] or file in imagetype['InternalFlat']:
+        daycal.append(file)
+    elif file in imagetype['DomeFlat'] :
+        if file in platetype['APOGEE-2']: dome['sdss4'].append(file)
+        elif file in platetype['BHM&MWM']: dome['sdss5'].append(file)
+        else: print("Skipping Dome Flat %r" % file)
+    elif file in imagetype['Dark']:
+        if file in platetype['APOGEE-2'] or file in alt['lt31']: dark['sdss4'].append(file)
+        if file in platetype['BHM&MWM'] or file in alt['lt31']: dark['sdss5'].append(file)
+print("SDSS-V Science Exposures")
+print("-" * 25)
+for file in science['sdss5']: print(file)
+print("-" * 25)
+print("Day Calibrations")
+print("-" * 25)
+for file in daycal: print(file)
+print("-" * 25)
+print("Dome Flats")
+print("-" * 25)
+for file in dome['sdss5']: print(file)
+print("-" * 25)
+print("Dark Files")
+print("-" * 25)
+for file in dark['sdss5']: print(file)
+
+keep = {'sdss5':[], 'sdss4': []}
+keep['sdss5'] = science['sdss5'] + daycal + dome['sdss5'] + dark['sdss5']
+keep['sdss4'] = science['sdss4'] + daycal + dome['sdss4'] + dark['sdss4']
+drop = {'sdss5':[], 'sdss4': []}
+drop['sdss4'] = science['sdss5'] + dome['sdss5'] + [file for file in dark['sdss5'] if file not in dark['sdss4']]
+drop['sdss5'] = science['sdss4'] + dome['sdss4'] + [file for file in dark['sdss4'] if file not in dark['sdss5']]
+
+print("SDSS-V: Out of %r files, keep %r and drop %r" % (len(files), len(keep['sdss5']), len(drop['sdss5'])))
+print("SDSS-IV: Out of %r files, keep %r and drop %r" % (len(files), len(keep['sdss4']), len(drop['sdss4'])))
+
+dir = {}
+dir['sdss4'] = "/uufs/chpc.utah.edu/common/home/sdss09/sdsswork/apo_staging/apogee/%r" % mjd
+dir['sdss5'] = "/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/data/apogee/apo/%r" % mjd
+
+for file in drop['sdss5']: print("rm %s/%s" % (dir['sdss5'],file))
+for file in drop['sdss4']: print("rm %s/%s" % (dir['sdss4'],file))
+
+
+print("| Apogee Files | MJD=%r |" % mjd)
+print("| -- | -- |")
+print("| SDSS-V Split | %s |" % "Out of %r files, keep %r and drop %r" % (len(files), len(keep['sdss5']), len(drop['sdss5'])))
+print("| SDSS-V Science Exposures | %s |" % ", ".join(science['sdss5']))
+print("| SDSS-V Dome Flats | %s |" % ", ".join(dome['sdss5']))
+print("| SDSS-V Darks | %s |" % ", ".join(dark['sdss5']))
+print("| SDSS (-IV and -V) Day Calibrations | %s |" % ", ".join(daycal))
+print("| SDSS-IV Science Exposures | %s |" % ", ".join(science['sdss4']))
+print("| SDSS-IV Dome Flats | %s |" % ", ".join(dome['sdss4']))
+print("| SDSS-IV Darks | %s |" % ", ".join(dark['sdss4']))
+print("| SDSS-IV Split | %s |" % "Out of %r files, keep %r and drop %r" % (len(files), len(keep['sdss4']), len(drop['sdss4'])))

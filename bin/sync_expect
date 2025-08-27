@@ -1,0 +1,14 @@
+#!/usr/bin/expect
+
+set host [lindex $argv 0];
+set cmd [lindex $argv 1];
+set gauth [exec transfer_gauth $host]
+set gauth1 [exec transfer_gauth $host 1]
+
+spawn {*}$cmd
+
+expect -timeout -1 "Password:"
+send "$gauth1\r"
+expect -timeout -1 "Verification code:"
+send "$gauth\r"
+expect -timeout -1 eof

@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+import sys
+from os import chdir, getcwd, listdir, environ
+from os.path import join, exists
+from transfer import Process
+
+method = 'md5sum'
+method_cmd = method + ' --check'
+data_dir = getcwd()
+mjd = sys.argv[1] if len(sys.argv) == 2 else None
+mjd_dir = join(data_dir, mjd)
+sumfile = join(mjd_dir, "%s.%s" % (mjd, method)) if mjd else None
+if sumfile and exists(sumfile):
+    chdir(mjd_dir)
+    process = Process(program = 'md5sum', mjd = mjd, logger = None)
+    command = "{0} {1}".format(method_cmd,sumfile)
+    process.run(command)
+    ok = True
+    for c in process.out.split("\n"):
+        if len(c) > 0:
+            l = c.rsplit(':',1)
+            try: foo = l[1].index('OK')
+            except ValueError:
+                print("Checksum mismatch: {0}".format(l[0]))
+                ok = False
+    chdir(data_dir)
+    if ok: print("VERIFY> %r OK." % (mjd))
+    else: print("VERIFY> %r FAILED!" % (mjd))
+else: print("ERROR> %r sumfile %r doesnt exist." % (mjd,sumfile))
+
+
+
+"""
+cd $APOGEE_DATA_2S
+for mjd in `ls`; do verify_mjd $mjd; done
+"""

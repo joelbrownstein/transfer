@@ -1,0 +1,66 @@
+#!/bin/sh
+# sync_cita -O apo -m 60009
+while getopts m:O:I: args
+do
+    case "${args}" in
+        m) mjd=${OPTARG};;
+        O) observatory=${OPTARG};;
+        I) ini_mode=${OPTARG};;
+    esac
+done
+
+
+if [ -z "${mjd}" ]; then
+    NOW=$(date +"%Y%m%d")
+    mjd=$(( ( $(date +%s -d "$NOW") / 86400 ) + 40587 ))
+fi
+
+if [ -z "${ini_mode}" ]; then
+    ini_mode="-I mos"
+else
+    ini_mode="-I $ini_mode"
+fi
+
+re='^[0-9]{5}$'
+if [[ $mjd =~ $re ]]; then
+    if [[ "$observatory" = "apo" || "$observatory" = "lco" ]]; then
+        echo "SYNC ${observatory^^}> for mjd=$mjd "
+        dir=`transfer_mjd -O $observatory $ini_mode -M --sync init -m $mjd`
+        jsons=$dir/transfer.${observatory}.mirror.*.rsync.json
+        for json in $jsons; do
+            echo "READING $json"
+            IFS=$'\n' cmds=(`grep -oP '(?<="command": ")[^"]*' $json`)
+            IFS=$'\n' ofiles=(`grep -oP '(?<="outfile": ")[^"]*' $json`)
+            index=0
+            #pids=()
+            if [ ${#cmds[@]} -eq ${#ofiles[@]} ]; then
+                for cmd in "${cmds[@]}"; do
+                    ofile=${ofiles[$index]}
+                    echo "===== index=$index ====="
+                    echo "$cmd > $ofile"
+                    #sleep 5 &
+                    expect $TRANSFER_DIR/bin/sync_expect gauth.cita.utoronto.ca $cmd > $ofile &
+                    #pids+=($!)
+                    index=$((index+1))
+                done
+                wait
+                #status=()
+                #for pid in "${pids[@]}"; do
+                #    wait "${pid}"
+                #    status+=($?)
+                #done
+            fi
+        done
+    else
+        echo "SYNC> invalid observatory: $observatory"
+    fi
+else
+    echo "SYNC> invalid mjd: $mjd"
+fi
+
+#step 1: transfer_observatory -M --dryrun (updates json with status=incomplete)
+#step 2: get otp
+#step 3: rsync streams from step 1
+#step 4: transfer_observatory -M --finalize (updates json with status=incomplete)
+
+

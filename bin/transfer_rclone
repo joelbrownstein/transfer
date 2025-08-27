@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+from transfer import Rclone, Argument
+
+arg = Argument('transfer_rclone')
+rclone = Rclone(options=arg.options)
+if rclone.ready:
+    rclone.mkdir()
+    rclone.copy()
+    rclone.ls()
+    rclone.set_details()
+    rclone.write_logfile()
+else: print("TRANSFER> Rclone not ready!")
+
+
+"""
+from transfer import Rclone
+envs = ['ECAM_DATA_S']
+#mjds = range(59883..59923)
+mjds = [59857, 59869, 59871, 59880, 59915]
+for env in envs:
+    rclone = Rclone(env = env,verbose = True)
+    for mjd in mjds:
+        rclone.mjd = mjd
+        rclone.set_path()
+        rclone.append_item()
+    rclone.mkdir()
+    rclone.copy()
+    rclone.ls()
+    
+from transfer import Rclone
+rclone = Rclone(env='ECAM_DATA_S', mjd=59857, verbose=True)
+if rclone.ready:
+    rclone.mkdir()
+    rclone.copy()
+    rclone.ls()
+    rclone.set_details()
+    rclone.write_logfile()
+
+"""

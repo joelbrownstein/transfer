@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+from transfer import Transfer, Argument
+
+arg = Argument('transfer')
+options = arg.options
+mode = options.ini_mode
+observatory = options.observatory
+options.log_dir = 'log/%s' % mode
+transfer = Transfer(options = options)
+transfer.set_config()
+transfer.set_logging()
+if transfer.logging.ready:
+    program = "%s_%s_%s" % (arg.program, observatory, mode)
+    transfer.set_process(program=program)
+    if transfer.process.ready:
+        transfer.set_sections()
+        transfer.set_current_report()
+        transfer.set_summary(mode = mode)
+        transfer.run_download()
+        transfer.run_verify()
+        transfer.run_backup()
+        transfer.run_copy()
+        transfer.run_mirror()
+        transfer.done()
+    else:
+        transfer.process.logger.critical("Detected another %s %s data transfer job running. Done!" % (observatory.upper(), mode.upper()))
+        print("TRANSFER> System in use!")
+else: print("TRANSFER> Logging not ready!")
+
+"""
+ #transfer_mjd -O apo -I mos -M --sync init -m 60009 -i fcam  -v
+from transfer import Transfer, Argument
+arg = Argument('transfer')
+options = arg.options
+observatory = options.observatory = 'apo'
+mode = options.ini_mode = 'mos'
+options.report = False
+options.download = False
+options.verify = True
+options.backup = False
+options.copy = False
+options.mirror = False
+options.sync = 'init'
+options.mjd = 60033
+options.include = ['fcam']
+options.verbose = True
+options.log_dir = 'log/%s' % mode
+transfer = Transfer(options = options)
+transfer.set_config()
+transfer.set_logging()
+program = "%s_%s_%s" % ('transfer', observatory, mode)
+transfer.set_process(program=program)
+transfer.set_sections()
+transfer.set_current_report()
+transfer.set_summary(mode = mode)
+transfer.run_mirror()
+ """

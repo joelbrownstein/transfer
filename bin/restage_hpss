@@ -1,0 +1,71 @@
+#!/bin/sh
+# restage_hpss -O apo -s apogee
+# for section in ${sections[@]}; do file=`ls $section/60511*`; echo $file; touch -d "2024-07-21 9:31:38.953754033 -0600" $file; done
+while getopts s:O: args
+do
+    case "${args}" in
+        s) section=${OPTARG};;
+        O) observatory=${OPTARG};;
+    esac
+done
+
+if [[ "$observatory" = "apo" || "$observatory" = "lco" ]]; then
+
+    if [[ "$observatory" = "apo" ]]; then
+        sections=("apogee" "ecam" "fcam" "gcam" "quickred" "sos" "spectro")
+    elif [[ "$observatory" = "lco" ]]; then
+        sections=("apogee" "fcam" "gcam" "lvm_agcam" "lvm_spectro" "quickred" "sos" "spectro")
+    fi
+
+    if [ ! -z "${section}" ]; then
+        if [[ ${sections[@]} =~ $section ]]; then
+          sections=($section)
+        else
+          echo "$section not found"
+          sections=()
+        fi
+    fi
+
+    echo "RESTAGE HPSS> $observatory: ${sections[@]} "
+    #archive=$observatory
+    archive=lvm
+    backup=/uufs/chpc.utah.edu/common/home/sdss06/sdsswork/data/backup/archive/$archive
+    restage=$TRANSFER_BACKUP_DIR/hpss/restage/$observatory
+    staging=$TRANSFER_BACKUP_DIR/hpss/staging/$observatory
+
+
+    for section in ${sections[@]}; do
+        for tar in `ls $restage/$section`; do
+            parts=(${tar//_/ })
+            mjd=${parts[0]}
+            parts=(${tar//./ })
+            file0=$backup/$mjd/${parts[0]}.tgz
+            file1=$staging/$section/$tar
+            if [ ! -f "$file1" ]; then
+                if [ -f "$file0" ]; then
+                    echo "RESTAGE> $file0 -> $file1"
+                    gunzip -c $file0 > $file1
+                else
+                    echo "MISSING> $file0"
+                fi
+            else
+                echo "SKIPPING> $file1"
+            fi
+        done
+    done
+
+    
+else
+    echo "RESTAGE HPSS> invalid observatory: $observatory"
+fi
+
+: '
+    obs=apo
+    for section in ${sections[@]}; do for mjd in {60278..60280}; do echo "$obs:$section:$mjd"; mv staging/$obs/$section/${mjd}_${section}.tar staged/$obs/$section/.;  done; done
+    
+    obs=lco
+    for section in ${sections[@]}; do for mjd in {60278..60280}; do echo "$obs:$section:$mjd"; mv staging/$obs/$section/${mjd}_${section}.tar staged/$obs/$section/.;  done; done
+
+
+    section=spectro; for mjd in 59861 59871 59899 59912; do echo "$obs:$section:$mjd"; mv staging-60272/$obs/$section/${mjd}_${section}.tar staging/$obs/.;  done
+'

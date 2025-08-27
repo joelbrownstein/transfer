@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+from os import environ, symlink
+from os.path import join, exists
+from re import compile, IGNORECASE
+import SwishE
+from sys import argv
+from time import time, strftime
+from dateutil.parser import parse
+from dateutil.tz import gettz
+from pytz import utc
+
+if len(argv)==2:
+    try: mjd = int(argv[1])
+    except: mjd = None
+else: mjd = None
+if mjd is None: mjd = int(time()/86400.0 + 40587.0)
+
+try: mailman_dir = environ["MAILMAN_DIR"]
+except: mailman_dir = None
+reports_dir = join(mailman_dir, "html", "reports", "lco", "lvm") if mailman_dir else None
+
+try: index_dir = environ["TRACMAILMAN_INDEX_DIR"]
+except: index_dir = None
+index_file = join(index_dir, "lvm-inst-index.swish-e") if mailman_dir else None
+
+try: handle = SwishE.new(index_file) if index_file else None
+except: handle = None
+
+source = None
+searches = []
+#searches.append(compile(r'\[lvm-inst ([0-9]+)\] lvm night log \(MJD %r\)' % mjd, IGNORECASE))
+#searches.append(compile(r'\[lvm-inst ([0-9]+)\] lvm night log %r' % mjd, IGNORECASE))
+#searches.append(compile(r'\[lvm-inst ([0-9]+)\] lvm night log [ms]jd %r' % mjd, IGNORECASE))
+searches.append(compile(r'\[lvm-inst ([0-9]+)\] lvm observing summary for mjd %r' % mjd, IGNORECASE))
+searches.append(compile(r'\[lvm-inst ([0-9]+)\] lvm observing summary mjd %r' % mjd, IGNORECASE))
+searches.append(compile(r'\[lvm-inst ([0-9]+)\] \[.*\] lvm observing summary for mjd %r' % mjd, IGNORECASE))
+searches.append(compile(r'\[lvm-inst ([0-9]+)\] \[.*\] lvm observing summary mjd %r' % mjd, IGNORECASE))
+#searches.append(compile(r'\[lvm-inst ([0-9]+)\] \[lvm-operations ([0-9]+)\] lvm observing summary for mjd %r' % mjd, IGNORECASE))
+
+header = "LVM Telescopes, Las Campanas Observatory, SDSS"
+#header = "LVM-I Observing Log"
+for h in  handle.query(header):
+    title = h.getproperty('swishtitle')
+    for search in searches:
+        if search.match(title): source = h.getproperty('swishdocpath')
+        if source: break
+    if source: break
+
+if source and exists(source):
+    Navajo = gettz("Navajo")
+    date = None
+    with open(source, 'r') as lines:
+        for line in lines:
+            line = line.strip()
+            if line.startswith("<I>") and line.endswith("</I>"):
+                try: date = parse(line[3:-4], tzinfos={"MST":Navajo, "MDT":Navajo}).astimezone(utc)
+                except: date = None
+                break
+    try: logfile = date.strftime( "%Y-%m-%d.%H:%M:%S.log.html") if date else None
+    except: logfile = None
+    destination = join(reports_dir, logfile) if reports_dir and logfile else None
+    if destination:
+        if not exists(destination):
+            print "CREATE SYMLINK %r->%r for MJD=%r" % (destination,source,mjd)
+            symlink(source, destination)
+        else: print "FOUND SYMLINK %r->%r for MJD=%r" % (destination,source,mjd)
+    else: print "Invalid destination for MJD=%r" % mjd
+else: print "Waiting for MJD=%r" % mjd

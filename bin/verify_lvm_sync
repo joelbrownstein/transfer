@@ -1,0 +1,22 @@
+#!/bin/sh
+unam=joelbrownstein@unam:///home/joelbrownstein/transfer/verify/lvm/lco/
+utah=/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/data/staging/unam/verify/lvm/lco/
+rsync_output=`rsync -avz $unam $utah`
+failed=`ls -l $utah | grep "md5sum.e" | awk {'print $9'}`
+if [ ! -z "$failed" ]; then
+    subject="UNAM> FAILED to verify LVM"
+    from="admin@sdss.org"
+    recipients="admin@sdss.org"
+    message="ERROR in md5sum\n"
+    message+="============================\n"
+    for file in $failed; do
+        file=${file%?}o
+        mjd=(${file//./ })
+        subject+=" MJD=$mjd"
+        message+="FAIL> $mjd\n";
+        message+=`cat $utah$file`
+        message+="\n============================\n"
+    done
+    mail="subject:$subject\nfrom:$from\n$message"
+    echo -e $mail | sendmail "$recipients"
+fi

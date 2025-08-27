@@ -1,0 +1,55 @@
+#!/bin/sh
+: '
+verify_hpss -O apo -s apogee
+cd /scratch/general/nfs1/sdssadmin/transfer/hpss/missing
+observatory=lco
+sections=("apogee" "fcam" "gcam" "lvm_agcam" "lvm_spectro" "quickred" "sos" "spectro")
+for section in ${sections[@]}; do
+    rm $observatory
+    mkdir ../restage/lco/$section
+    ln -s ../restage/$observatory/$section $observatory
+    verify_hpss -O $observatory -s $section
+done
+'
+
+while getopts s:O: args
+do
+    case "${args}" in
+        s) section=${OPTARG};;
+        O) observatory=${OPTARG};;
+    esac
+done
+
+if [[ "$observatory" = "apo" || "$observatory" = "lco" ]]; then
+
+    if [[ "$observatory" = "apo" ]]; then
+        sections=("apogee" "ecam" "fcam" "gcam" "quickred" "sos" "spectro")
+    elif [[ "$observatory" = "lco" ]]; then
+        sections=("apogee" "fcam" "gcam" "lvm_agcam" "lvm_spectro" "quickred" "sos" "spectro")
+    fi
+
+    if [ ! -z "${section}" ]; then
+        if [[ ${sections[@]} =~ $section ]]; then
+          sections=($section)
+        else
+          echo "$section not found"
+          sections=()
+        fi
+    fi
+
+    echo "VERIFY HPSS> $observatory: ${sections[@]} "
+
+    for section in ${sections[@]}; do for file in `globus ls $TRANSFER_HPSS_ENDPOINT:$HPSS_BASE_DIR/data/staging/$observatory/$section/`; do vfile=$TRANSFER_BACKUP_DIR/hpss/verified/$observatory/$section/$file; if [[ "$file" == *.tar ]] && [[ ! -f $vfile ]]; then echo "VERIFY HPSS> $observatory: $section/$file"; touch $vfile; fi; done; done
+
+    #archive=$observatory
+    archive=lvm
+    backup=/uufs/chpc.utah.edu/common/home/sdss06/sdsswork/data/backup/archive/$archive
+    verified=$TRANSFER_BACKUP_DIR/hpss/verified/$observatory
+    missing=$TRANSFER_BACKUP_DIR/hpss/missing/$observatory
+    mjds=`ls $backup`
+    for section in ${sections[@]}; do for mjd in ${mjds[@]}; do bfile="$backup/$mjd/${mjd}_${section}.tgz"; vfile="$verified/$section/${mjd}_${section}.tar"; mfile="$missing/${mjd}_${section}.tar"; if [[ -f $bfile ]] && [[ ! -f $vfile ]]; then echo "VERIFY> $mjd  $section Found $bfile Missing $vfile"; touch $mfile; elif [[ -f $vfile ]] && [[ -f $mfile ]]; then rm $mfile; fi; done; done
+
+else
+    echo "VERIFY HPSS> invalid observatory: $observatory"
+fi
+

@@ -1,0 +1,50 @@
+#!/bin/sh
+while getopts m:o: args
+do
+    case "${args}" in
+        m) mjd=${OPTARG};;
+        o) obs=${OPTARG};;
+    esac
+done
+
+
+if [ -z "${mjd}" ]; then
+    NOW=$(date +"%Y%m%d")
+    mjd=$(( ( $(date +%s -d "$NOW") / 86400 ) + 40587 ))
+fi
+
+re='^[0-9]{5}$'
+if [[ $mjd =~ $re ]]; then
+    if [[ "$obs" = "apo" ]]; then
+        echo "SYNC APO> Summaries for mjd=$mjd "
+        sas=$APO_STAGING_DATA/summaries/$mjd
+        if [ -d "$sas" ]; then
+            apo=sdss5-apo:///data/sas/summaries/$mjd
+            rsync -avz $sas/ $apo/;
+        else
+            echo "SYNC> nonexistent on SAS: $sas"
+        fi
+    elif [[ "$obs" = "lco" ]]; then
+        echo "SYNC LCO> Summaries for mjd=$mjd "
+        sas=$LCO_STAGING_DATA/summaries/$mjd
+        if [ -d "$sas" ]; then
+            lco=sdss5-lco:///data/sas/summaries/$mjd
+            rsync -avz $sas/ $lco/ --exclude="lvm_*.json";
+        else
+            echo "SYNC> nonexistent on SAS: $sas"
+        fi
+    elif [[ "$obs" = "lvm" ]]; then
+        echo "SYNC LVM> Summaries for mjd=$mjd "
+        sas=$LCO_STAGING_DATA/summaries/$mjd
+        if [ -d "$sas" ]; then
+            lvm=sdss5-lvm-lco:///data/sas/summaries/$mjd
+            rsync -avz $sas/ $lvm/ --include="lvm_*.json" --exclude="*" ;
+        else
+            echo "SYNC> nonexistent on SAS: $sas"
+        fi
+    else
+        echo "SYNC> invalid observatory: $obs"
+    fi
+else
+    echo "SYNC> invalid mjd: $mjd"
+fi

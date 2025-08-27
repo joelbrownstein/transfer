@@ -1,0 +1,18 @@
+#!/bin/sh
+ml transfer
+software=/home/sdss5/software
+product=sdsscore
+branch=main
+transfer_github --branch $branch --product $product
+if [ -e ${TRANSFER_VAR_DIR}/${branch}/pull ]; then
+    product_dir=${software}/${product}/${branch}
+    if [ -e ${product_dir} ]; then
+        current_dir=`pwd`
+        cd $product_dir
+        NOW=$(date +"%D %T %Z")
+        git pull
+        echo $NOW > ${TRANSFER_VAR_DIR}/${branch}/pull.o
+        cd $current_dir
+    fi
+fi
+
