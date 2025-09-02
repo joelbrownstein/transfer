@@ -7,10 +7,11 @@ from shutil import rmtree
 
 class Copy:
 
-    def __init__(self, staging=None, source=None, destination=None, mjd=None, log_dir=None, process=None, logger=None, verbose=None):
+    def __init__(self, staging=None, source=None, destination=None, mjd=None, log_dir=None,  resources_path=None, process=None, logger=None, verbose=None):
         self.staging = staging
         self.mjd = mjd
         self.log_dir = log_dir
+        self.resources_path = resources_path
         self.process = process
         self.logger = logger
         self.verbose = verbose
@@ -58,11 +59,16 @@ class Copy:
     def touch(self, done = None, times = None):
         if self.ready:
             touch_file = "transfer-%r.done" if done else "transfer-%r.fail"
+            resources_file = join(self.resources_path, touch_file) if exists(self.resources_path) else None
             touch_file = join(self.staging, self.log_dir, "%r" % self.mjd, touch_file % self.mjd) if self.staging and self.log_dir and self.mjd else None
             if touch_file:
                 with open(touch_file, 'a'): utime(touch_file, times)
             else:
                 self.logger.critical("Error touching %r" % touch_file)
+            if resources_file:
+                with open(resources_file, 'a'): utime(resources_file, times)
+            else:
+                self.logger.critical("Error touching %r" % resources_file)
             
     def drop_empty(self):
         if self.ready:

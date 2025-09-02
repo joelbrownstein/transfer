@@ -185,7 +185,8 @@ class Transfer:
         if self.copy and self.ready:
             self.stage = 'copy'
             self.logging.set_stage(stage=self.stage)
-            copy = Copy(staging=self.config.staging, mjd=self.mjd, log_dir=self.config.log_dir, process=self.process, logger=self.logging.logger, verbose=self.verbose)
+            resources_path = self.config.options.get('general','resources_path')
+            copy = Copy(staging=self.config.staging, mjd=self.mjd, log_dir=self.config.log_dir, resources_path=resources_path, process=self.process, logger=self.logging.logger, verbose=self.verbose)
             done = None
             for section in self.sections:
                 if copy.ready:
