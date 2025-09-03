@@ -59,7 +59,7 @@ class Copy:
     def touch(self, done = None, times = None):
         if self.ready:
             touch_file = "transfer-%r.done" if done else "transfer-%r.fail"
-            resources_file = join(self.resources_path, touch_file) if exists(self.resources_path) else None
+            resources_file = join(self.resources_path, touch_file % self.mjd) if exists(self.resources_path) else None
             touch_file = join(self.staging, self.log_dir, "%r" % self.mjd, touch_file % self.mjd) if self.staging and self.log_dir and self.mjd else None
             if touch_file:
                 with open(touch_file, 'a'): utime(touch_file, times)
