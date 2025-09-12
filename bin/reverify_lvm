@@ -5,7 +5,7 @@ arg = Argument('reverify')
 options = arg.options
 options.observatory = observatory = 'lco'
 options.ini_mode = mode = 'lvm'
-options.log_dir = 'log/%s' % mode
+options.log_dir = 'reverify/%s' % mode
 reverify = Reverify(options = options)
 reverify.set_config()
 reverify.set_logging()
