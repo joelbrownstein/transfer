@@ -37,7 +37,7 @@ class Reverify:
         self.ready = True if self.sections and self.logging.ready and self.process.ready else False
     
     def set_summary(self, mode=None, status=None):
-        pass
+        self.summary = None
         """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
         if status: self.summary.todo_status = status
         for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
@@ -121,13 +121,14 @@ class Reverify:
                             self.ready = False
                     elif not mjd_dir_nonempty: logger.info("No {0} data found.".format(section))
                 if mjd_dir_nonempty:
-                    self.summary.export_section(directory=mjd_dir, section=section)
+                    if self.summary: self.summary.export_section(directory=mjd_dir, section=section)
                     logger.info("Export summary for section={0}.".format(section))
 
             if not self.debug:
-                if self.ready: self.summary.save(stage=self.stage, status='success')
+                if self.ready:
+                    if self.summary: self.summary.save(stage=self.stage, status='success')
                 else:
-                    self.summary.save(stage=self.stage, status='failure')
+                    if self.summary: self.summary.save(stage=self.stage, status='failure')
                     logger.critical("Errors verifying {0} data!".format(section))
 
     def done(self):
