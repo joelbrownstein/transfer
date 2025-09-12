@@ -10,7 +10,7 @@ reverify = Reverify(options = options)
 reverify.set_config()
 reverify.set_logging()
 if reverify.logging.ready:
-    program = "%s_%s" % (arg.program, mode)
+    program = "reverify_%s_%s" % (observatory, mode)
     reverify.set_process(program=program)
     if reverify.process.ready:
         reverify.set_sections()

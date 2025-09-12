@@ -52,12 +52,17 @@ class Reverify:
             for section in self.sections:
                 boss_section = section in ['sos', 'spectro'] if section else None
                 folder = join('boss',section) if boss_section else section
-                mjd_dir = join(self.config.staging,folder,str(self.mjd))
-                mjd_dir_nonempty = True if isdir(mjd_dir) and listdir(mjd_dir) else False
+                env = self.config.options.get(section,'env_copy')
+                try: sas_dir = environ[env] if env else None
+                except: sas_folder = None
+                self.mjd_dir = join(sas_folder,folder,str(self.mjd)) if sas_folder else None
+                mjd_dir_nonempty = True if self.mjd_dir and isdir(self.mjd_dir) and listdir(self.mjd_dir) else False
                 method = options.get(section,'verify')
-                if not self.debug:
+                if not self.mjd_dir:
+                    if self.verbose: print("REVERIFY> Please module load tree/sdsswork to set env=%r" % env)
+                elif not self.debug:
                     if method != 'SKIP' and mjd_dir_nonempty:
-                        sumfile = join(mjd_dir,'irsc.log.gz') if method == 'ircam' else join(mjd_dir,"{0:d}.{1}".format(self.mjd,method.split(' ')[0]))
+                        sumfile = join(self.mjd_dir,'irsc.log.gz') if method == 'ircam' else join(self.mjd_dir,"{0:d}.{1}".format(self.mjd,method.split(' ')[0]))
                         if self.verbose: print("REVERIFY> Verify %s using sumfile=%r" % (section, sumfile))
                         if exists(sumfile):
                             logger.info("{0} file exists, running {1} verification stage.".format(sumfile,section))
@@ -78,7 +83,7 @@ class Reverify:
                                 sortedloglist = list(ircamlog.keys())
                                 sortedloglist.sort()
                                 sorteddisklist = list()
-                                for d in listdir(mjd_dir):
+                                for d in listdir(self.mjd_dir):
                                     m = cRre.match(d)
                                     if m is not None: sorteddisklist.append(m.groups()[0])
                                 sorteddisklist.sort()
@@ -105,7 +110,7 @@ class Reverify:
 
                             else:
                                 oldwd = getcwd()
-                                chdir(mjd_dir)
+                                chdir(self.mjd_dir)
                                 command = "{0} {1}".format(method,sumfile)
                                 self.process.run(command)
                                 for c in self.process.out.split("\n"):
@@ -121,7 +126,7 @@ class Reverify:
                             self.ready = False
                     elif not mjd_dir_nonempty: logger.info("No {0} data found.".format(section))
                 if mjd_dir_nonempty:
-                    if self.summary: self.summary.export_section(directory=mjd_dir, section=section)
+                    if self.summary: self.summary.export_section(directory=self.mjd_dir, section=section)
                     logger.info("Export summary for section={0}.".format(section))
 
             if not self.debug:
