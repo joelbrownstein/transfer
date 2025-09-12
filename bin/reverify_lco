@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from reverify import Reverify, Argument
+from transfer import Reverify, Argument
 
 arg = Argument('reverify')
 options = arg.options
