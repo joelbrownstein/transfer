@@ -14,7 +14,7 @@ if reverify.logging.ready:
     reverify.set_process(program=program)
     if reverify.process.ready:
         reverify.set_sections()
-        #reverify.set_summary(mode = mode)
+        reverify.set_summary(mode = mode)
         reverify.run_verify()
         reverify.run_copy()
         reverify.done()
