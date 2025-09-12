@@ -72,6 +72,7 @@ def reverify():
     section.add_argument('-i', '--include', action='append', dest='include', metavar='SECTION', help='Include this')
     section.add_argument('-e', '--exclude', action='append', dest='exclude', metavar='SECTION', help='Exclude this')
     parser.add_argument('-O', '--observatory', action='store', dest='observatory', metavar='OBSERVATORY', help='observatory', choices = ['apo','lco'])
+    parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='Set logger to debug')
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='Set verbose')
     args = parser.parse_args()
     return parser.prog, args
