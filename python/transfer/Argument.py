@@ -62,3 +62,17 @@ def transfer_rclone():
     parser.add_argument("-v", "--verbose", help="verbose",action="store_true")
     args = parser.parse_args()
     return parser.prog, args
+
+def reverify():
+    parser = ArgumentParser()
+    parser.add_argument('-m', '--mjd', action='store', dest='mjd', type=int, metavar='MJD', help='Transfer this MJD')
+    parser.add_argument('-I', '--ini_mode', action='store', dest='ini_mode', metavar='INI_MODE', help='ini mode', choices=['mos','lvm'])
+    parser.add_argument('-L', '--log_dir', action='store', dest='log_dir', metavar='LOG_DIR', help='ini mode')
+    section = parser.add_mutually_exclusive_group()
+    section.add_argument('-i', '--include', action='append', dest='include', metavar='SECTION', help='Include this')
+    section.add_argument('-e', '--exclude', action='append', dest='exclude', metavar='SECTION', help='Exclude this')
+    parser.add_argument('-O', '--observatory', action='store', dest='observatory', metavar='OBSERVATORY', help='observatory', choices = ['apo','lco'])
+    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='Set verbose')
+    args = parser.parse_args()
+    return parser.prog, args
+

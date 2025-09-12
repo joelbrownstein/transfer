@@ -13,3 +13,4 @@ from .Sync import Sync
 from .Transfer import Transfer
 from .GitHub import GitHub
 from .Mirror import Mirror
+from .Reverify import Reverify
