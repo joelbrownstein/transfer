@@ -53,9 +53,11 @@ class Reverify:
                 boss_section = section in ['sos', 'spectro'] if section else None
                 folder = join('boss',section) if boss_section else section
                 env = self.config.options.get(section,'env_copy')
+                print("ENV> %r" % env)
                 try: sas_dir = environ[env] if env else None
                 except: sas_dir = None
                 self.mjd_dir = join(sas_dir,folder,str(self.mjd)) if sas_dir else None
+                print("MJD DIR> %r" % self.mjd_dir)
                 mjd_dir_nonempty = True if self.mjd_dir and isdir(self.mjd_dir) and listdir(self.mjd_dir) else False
                 method = options.get(section,'verify')
                 if not self.mjd_dir:
