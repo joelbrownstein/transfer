@@ -141,7 +141,6 @@ class History:
 
     def __init__(self, staging=None, observatory=None, log_dir = None, mjd=None, logfile=None, verbose=False):
         self.staging = staging
-        self.generation = 5 if 'data' in staging else 4
         self.observatory = observatory
         self.log_dir = log_dir if log_dir else 'atlogs'
         self.mjd = mjd
