@@ -98,7 +98,7 @@ class Verify:
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
-                    if self.verbose: print("VERIFY> section=%r checksums are OK" %(section)
+                    if self.verbose: print("VERIFY> section=%r checksums are OK" %(section))
                 elif not self.mjd_dir_nonempty: self.logger.info("No {0} data found.".format(section))
 
 
