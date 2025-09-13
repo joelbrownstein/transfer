@@ -3,6 +3,7 @@ from .Config import Config
 from .Logging import Logging
 from .Process import Process
 from .Summary import Summary
+from .Verify import Verify
 from .Report import Report
 from .Remote import Remote
 from .Globus import Globus
