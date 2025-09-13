@@ -137,7 +137,7 @@ class Reverify:
         self.logging.set_stage()
         self.logging.logger.info("Done!")
 
-Class History
+Class History:
 
     def __init__(self, staging=None, observatory=None, log_dir = None, mjd=None, logfile=None, verbose=False):
         self.staging = staging
