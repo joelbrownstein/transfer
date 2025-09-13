@@ -6,7 +6,7 @@ import gzip
 
 class Verify:
 
-    def __init__(self, options=None, staging=None, observatory=None, mode=None, mjd=None, process=None, dir=None, logger=None, stage = self.stage, debug = None, verbose=None):
+    def __init__(self, options=None, staging=None, observatory=None, mode=None, mjd=None, process=None, dir=None, logger=None, stage = None, debug = None, verbose=None):
         self.options = options
         self.staging = staging
         self.observatory = observatory
