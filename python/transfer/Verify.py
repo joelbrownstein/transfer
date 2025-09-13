@@ -41,7 +41,7 @@ class Verify:
                     self.sumfile = join(self.mjd_dir,'irsc.log.gz') if method == 'ircam' else join(self.mjd_dir,"{0:d}.{1}".format(self.mjd,method.split(' ')[0]))
                     if self.verbose: print("TRANSFER> Verify %s using sumfile=%r" % (section, self.sumfile))
                     if exists(self.sumfile):
-                        logger.info("{0} file exists, running {1} verification stage.".format(self.sumfile,section))
+                        self.logger.info("{0} file exists, running {1} verification stage.".format(self.sumfile,section))
                         if method == 'ircam':
                             cRre = re.compile(r'(cR\d{6}\.fit)(\.gz|)\s*')
                             with gzip.open(self.sumfile, "rt") as f: lines = f.read()
@@ -64,24 +64,24 @@ class Verify:
                                 if m is not None: sorteddisklist.append(m.groups()[0])
                             sorteddisklist.sort()
                             if len(sortedloglist) == len(sorteddisklist):
-                                logger.info("Number of files in irsc.log equals number of files on disk (%r)" % len(sortedloglist))
+                                self.logger.info("Number of files in irsc.log equals number of files on disk (%r)" % len(sortedloglist))
                                 for k in range(len(sorteddisklist)):
                                     if sorteddisklist[k] != sortedloglist[k]:
-                                        logger.error("WARNING: file #{0}: {1} {2}!".format(k,sorteddisklist[k],sortedloglist[k]))
+                                        self.logger.error("WARNING: file #{0}: {1} {2}!".format(k,sorteddisklist[k],sortedloglist[k]))
                                         self.ready = False
                             else:
                                 if len(sortedloglist) > len(sorteddisklist):
-                                    logger.error("Number of files in irsc.log exceeds number of files on disk (%r>%r)" % (len(sortedloglist),len(sorteddisklist)))
+                                    self.logger.error("Number of files in irsc.log exceeds number of files on disk (%r>%r)" % (len(sortedloglist),len(sorteddisklist)))
                                     for file in sortedloglist:
-                                        if file not in sorteddisklist: logger.error("    --> Missing %s on disk" % file)
+                                        if file not in sorteddisklist: self.logger.error("    --> Missing %s on disk" % file)
                                     for file in sorteddisklist:
-                                        if file not in sortedloglist: logger.error("    --> And missing %s in irsc.log" % file)
+                                        if file not in sortedloglist: self.logger.error("    --> And missing %s in irsc.log" % file)
                                 if len(sortedloglist) < len(sorteddisklist):
-                                    logger.error("Fewer files in irsc.log than the number of files on disk (%r<%r)" % (len(sortedloglist),len(sorteddisklist)))
+                                    self.logger.error("Fewer files in irsc.log than the number of files on disk (%r<%r)" % (len(sortedloglist),len(sorteddisklist)))
                                     for file in sorteddisklist:
-                                        if file not in sortedloglist: logger.error("    --> Missing %s in irsc.log" % file)
+                                        if file not in sortedloglist: self.logger.error("    --> Missing %s in irsc.log" % file)
                                     for file in sortedloglist:
-                                        if file not in sorteddisklist: logger.error("    --> And Missing %s on disk" % file)
+                                        if file not in sorteddisklist: self.logger.error("    --> And Missing %s on disk" % file)
                                 self.ready = False
 
                         else:
@@ -94,11 +94,11 @@ class Verify:
                                     l = c.rsplit(':',1)
                                     try: foo = l[1].index('OK')
                                     except ValueError:
-                                        logger.error("Checksum mismatch: {0}".format(l[0]))
+                                        self.logger.error("Checksum mismatch: {0}".format(l[0]))
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
-                elif not self.mjd_dir_nonempty: logger.info("No {0} data found.".format(section))
+                elif not self.mjd_dir_nonempty: self.logger.info("No {0} data found.".format(section))
 
 
     """def run_reverify(self):
