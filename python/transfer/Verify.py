@@ -100,6 +100,6 @@ class Verify:
                     else: self.ready = False
                     ok = "OK" if self.ready else "FAIL"
                     self.logger.info("Checksums for %s are %s" % (section, ok))
-                    if self.verbose: print("VERIFY> Checksums for %s [OK]" % (section, ok))
+                    if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, ok))
                 elif not self.mjd_dir_nonempty: self.logger.info("No {0} data found.".format(section))
 
