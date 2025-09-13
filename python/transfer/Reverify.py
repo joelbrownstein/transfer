@@ -35,7 +35,7 @@ class Reverify:
         self.ready = True if self.sections and self.logging.ready and self.process.ready else False
     
     def set_history(self, mode=None, status=None):
-        self.history = History(observatory = self.config.observatory, mjd = self.mjd, mjd_dir=self.logging.mjd_dir, verbose = self.verbose)
+        self.history = History(observatory = self.config.observatory, mjd = self.mjd, mjd_dir=self.logging.mjd_log_dir, verbose = self.verbose)
         """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
         if status: self.summary.todo_status = status
         for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
