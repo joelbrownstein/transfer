@@ -72,5 +72,5 @@ class History:
         self.mjd = mjd
         self.mjd_dir = mjd_dir
         self.verbose = verbose
-        if self.verbose: print("HISTORY> MJD dir=%r" % mjd_dir.mjd)
+        if self.verbose: print("HISTORY> MJD dir=%r" % self.mjd_dir)
         
