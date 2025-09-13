@@ -50,17 +50,17 @@ class Reverify:
             verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, stage = self.stage, debug = self.debug, verbose=self.verbose)
             for section in self.sections:
                 verify.set_section(section = section)
-                if verify.mjd_dir_nonempty:
-                    self.summary.export_section(directory=verify.mjd_dir, section=section)
-                    logger.info("Export summary for section={0}.".format(section))
-                if not verify.ready:
-                    logger.error("{0} does not appear to exist!".format(verify.sumfile))
-                    break
-            if not self.debug:
-                if verify.ready: self.summary.save(stage=self.stage, status='success')
-                else:
-                    self.summary.save(stage=self.stage, status='failure')
-                    logger.critical("Errors verifying {0} data!".format(section))
+                #if verify.mjd_dir_nonempty:
+                #    self.summary.export_section(directory=verify.mjd_dir, section=section)
+                #    logger.info("Export summary for section={0}.".format(section))
+                #if not verify.ready:
+                #    logger.error("{0} does not appear to exist!".format(verify.sumfile))
+                #    break
+            #if not self.debug:
+            #    if verify.ready: self.summary.save(stage=self.stage, status='success')
+            #    else:
+            #        self.summary.save(stage=self.stage, status='failure')
+            #        logger.critical("Errors verifying {0} data!".format(section))
 
     def set_summary(self, mode=None, status=None):
         self.summary = None
