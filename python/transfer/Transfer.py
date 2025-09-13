@@ -1,4 +1,4 @@
-from transfer import Config, Process, Logging, Summary, Backup, Copy, Globus, Rclone, Report, Sync
+from transfer import Config, Process, Logging, Summary, Verify, Backup, Copy, Globus, Rclone, Report, Sync
 from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
