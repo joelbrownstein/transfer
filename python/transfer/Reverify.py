@@ -7,8 +7,6 @@ import gzip
 class Reverify:
 
     def __init__(self, options=None, observatory=None, mjd=None, ini_mode=None, log_dir=None, include=None, exclude=None, debug=False, verbose=False):
-    
-    #report=False, download=False, verify=False, backup=False, copy=False, mirror=False, sync=False,
         self.observatory = options.observatory if options else observatory
         self.ini_mode = options.ini_mode if options else ini_mode
         self.log_dir = options.log_dir if options else log_dir
@@ -36,8 +34,8 @@ class Reverify:
         if self.verbose: print("REVERIFY> Sections=%r" % self.sections)
         self.ready = True if self.sections and self.logging.ready and self.process.ready else False
     
-    def set_summary(self, mode=None, status=None):
-        self.summary = None
+    def set_history(self, mode=None, status=None):
+        self.history = History()
         """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
         if status: self.summary.todo_status = status
         for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
@@ -139,3 +137,13 @@ class Reverify:
         self.logging.set_stage()
         self.logging.logger.info("Done!")
 
+Class History
+
+    def __init__(self, staging=None, observatory=None, log_dir = None, mjd=None, logfile=None, verbose=False):
+        self.staging = staging
+        self.generation = 5 if 'data' in staging else 4
+        self.observatory = observatory
+        self.log_dir = log_dir if log_dir else 'atlogs'
+        self.mjd = mjd
+        self.logfile = logfile
+        self.verbose = verbose
