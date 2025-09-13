@@ -34,20 +34,13 @@ class Reverify:
         if self.verbose: print("REVERIFY> Sections=%r" % self.sections)
         self.ready = True if self.sections and self.logging.ready and self.process.ready else False
     
-    def set_history(self, mode=None, status=None):
-        self.history = History(observatory = self.config.observatory, mjd = self.mjd, mjd_dir=self.logging.mjd_log_dir, verbose = self.verbose)
-        """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
-        if status: self.summary.todo_status = status
-        for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
-        self.logging.logger.info("Ready to run stages [%s]" % ', '.join(self.summary.stages_todo()))
-        if not self.debug: self.summary.save(stage = self.stage)"""
-
     def run_verify(self):
         if self.ready:
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             options = self.config.options
             verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, stage = self.stage, debug = self.debug, verbose=self.verbose)
+            verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
             for section in self.sections:
                 verify.set_section(section = section)
                 #if verify.mjd_dir_nonempty:
@@ -69,11 +62,3 @@ class Reverify:
         self.logging.set_stage()
         self.logging.logger.info("Done!")
 
-class History:
-    def __init__(self, observatory=None, mjd=None, mjd_dir = None, verbose=False):
-        self.observatory = observatory
-        self.mjd = mjd
-        self.mjd_dir = mjd_dir
-        self.verbose = verbose
-        if self.verbose: print("HISTORY> MJD dir=%r" % self.mjd_dir)
-        

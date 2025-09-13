@@ -11,7 +11,6 @@ reverify.set_config()
 reverify.set_logging()
 if reverify.logging.ready:
     program = "%s_%s" % (arg.program, mode)
-    reverify.set_history()
     reverify.set_process(program=program)
     if reverify.process.ready:
         reverify.set_sections()

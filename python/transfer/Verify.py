@@ -20,6 +20,16 @@ class Verify:
         self.verbose = verbose
         self.sumfile = None
         self.ready = None
+
+    def set_history(self, mjd_log_dir=None):
+        self.history = History(observatory = self.observatory, mjd = self.mjd, mjd_log_dir=mjd_log_dir, verbose = self.verbose)
+        """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
+        if status: self.summary.todo_status = status
+        for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
+        self.logging.logger.info("Ready to run stages [%s]" % ', '.join(self.summary.stages_todo()))
+        if not self.debug: self.summary.save(stage = self.stage)"""
+
+
     
     def set_section(self, section = None):
         if section:
@@ -98,9 +108,18 @@ class Verify:
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
-                    ok = "OK" if self.ready else "FAIL"
-                    self.logger.info("Checksums for %s [%s]" % (section, ok))
-                    if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, ok))
+                    status = "OK" if self.ready else "FAIL" if exists(self.sumfile) else "SKIP"
+                    self.logger.info("Checksums for %s [%s]" % (section, status))
+                    if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
                 elif not self.mjd_dir_nonempty:
                     self.logger.info("No data found for %s" % section)
                     if self.verbose: print("VERIFY> No data found for %s" % section)
+
+class History:
+    def __init__(self, observatory=None, mjd=None, mjd_log_dir = None, verbose=False):
+        self.observatory = observatory
+        self.mjd = mjd
+        self.mjd_log_dir = mjd_log_dir
+        self.verbose = verbose
+        if self.verbose: print("HISTORY> MJD log dir=%r" % self.mjd_log_dir)
+        
