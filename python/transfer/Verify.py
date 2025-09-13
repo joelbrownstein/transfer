@@ -39,7 +39,7 @@ class Verify:
             if not self.debug:
                 if method != 'SKIP' and self.mjd_dir_nonempty:
                     self.sumfile = join(self.mjd_dir,'irsc.log.gz') if method == 'ircam' else join(self.mjd_dir,"{0:d}.{1}".format(self.mjd,method.split(' ')[0]))
-                    if self.verbose: print("TRANSFER> Verify %s using sumfile=%r" % (section, self.sumfile))
+                    if self.verbose: print("VERIFY> %s using sumfile=%r" % (section, self.sumfile))
                     if exists(self.sumfile):
                         self.logger.info("{0} file exists, running {1} verification stage.".format(self.sumfile,section))
                         if method == 'ircam':
@@ -98,6 +98,7 @@ class Verify:
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
+                    if self.verbose: print("VERIFY> section=%r checksums are OK" %(section)
                 elif not self.mjd_dir_nonempty: self.logger.info("No {0} data found.".format(section))
 
 
