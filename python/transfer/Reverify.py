@@ -62,6 +62,9 @@ class Reverify:
                     self.summary.save(stage=self.stage, status='failure')
                     logger.critical("Errors verifying {0} data!".format(section))
 
+    def set_summary(self, mode=None, status=None):
+        self.summary = None
+        
     def done(self):
         self.logging.set_stage()
         self.logging.logger.info("Done!")
