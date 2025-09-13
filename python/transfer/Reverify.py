@@ -35,7 +35,7 @@ class Reverify:
         self.ready = True if self.sections and self.logging.ready and self.process.ready else False
     
     def set_history(self, mode=None, status=None):
-        self.history = History()
+        self.history = History(observatory = self.config.observatory, mjd = self.mjd, mjd_dir=self.logging.mjd_dir, verbose = self.verbose)
         """self.summary = Summary(staging = self.config.staging, observatory = self.config.observatory, log_dir=self.config.log_dir, mjd = self.mjd, logfile=self.current_report, verbose = self.verbose)
         if status: self.summary.todo_status = status
         for stage in self.summary.stages.keys(): self.summary.stages[stage] = getattr(self,stage)
@@ -138,11 +138,10 @@ class Reverify:
         self.logging.logger.info("Done!")
 
 class History:
-
-    def __init__(self, staging=None, observatory=None, log_dir = None, mjd=None, logfile=None, verbose=False):
-        self.staging = staging
+    def __init__(self, observatory=None, mjd=None, mjd_dir = None, verbose=False):
         self.observatory = observatory
-        self.log_dir = log_dir if log_dir else 'atlogs'
         self.mjd = mjd
-        self.logfile = logfile
+        self.mjd_dir = mjd_dir
         self.verbose = verbose
+        if self.verbose: print("HISTORY> MJD dir=%r" % mjd_dir.mjd)
+        
