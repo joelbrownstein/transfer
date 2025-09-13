@@ -1,4 +1,4 @@
-from transfer import Config, Verfiy, Process, Logging
+from transfer import Config, Verify, Process, Logging
 from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
