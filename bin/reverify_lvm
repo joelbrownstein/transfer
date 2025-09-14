@@ -9,6 +9,7 @@ options.log_dir = 'reverify/%s' % mode
 options.include = ['spectro']
 reverify = Reverify(options = options)
 reverify.set_config()
+reverify.set_logging()
 reverify.set_verify()
 
 if reverify.logging.ready:

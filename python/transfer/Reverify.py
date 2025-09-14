@@ -28,6 +28,7 @@ class Reverify:
             logger = self.logging.logger
             options = self.config.options
             self.verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, index = self.logging.index, stage = self.stage, debug = self.debug, verbose=self.verbose)
+        else: self.verify = None
 
     def set_config(self):
         self.config = Config(observatory = self.observatory,  log_dir = self.log_dir, ini_mode = self.ini_mode, verbose = self.verbose)
