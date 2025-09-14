@@ -3,7 +3,7 @@ from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
 import gzip
-from json import loads, dump
+from json import load, dump
 from time import gmtime, strftime
 
 class Verify:
@@ -151,7 +151,7 @@ class History:
         
     def set_data_from_json(self, section = None):
         if section and self.jsonfile and exists(self.jsonfile):
-            with open(self.jsonfile, 'r') as file: self.data[section]  = loads(file)
+            with open(self.jsonfile, 'r') as file: self.data[section]  = load(file)
             if self.verbose: print("HISTORY> READING %s" % self.jsonfile)
         else: self.data[section] = {'MJD': self.mjd, 'section': section, 'history': [], 'modified': None}
         
