@@ -3,6 +3,8 @@ from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
 import gzip
+from json import loads, dump
+from datetime import datetime
 
 class Verify:
 
@@ -20,6 +22,8 @@ class Verify:
         self.verbose = verbose
         self.sumfile = None
         self.ready = None
+        self.status = {}
+        self.data = {}
 
     def set_history(self, mjd_log_dir=None):
         self.history = History(observatory = self.observatory, mjd = self.mjd, mjd_log_dir=mjd_log_dir, verbose = self.verbose)
@@ -108,13 +112,25 @@ class Verify:
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
-                    status = "OK" if self.ready else "FAIL" if exists(self.sumfile) else "SKIP"
-                    self.logger.info("Checksums for %s [%s]" % (section, status))
-                    if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
+                    self.set_status(section = section)
                 elif not self.mjd_dir_nonempty:
                     self.logger.info("No data found for %s" % section)
                     if self.verbose: print("VERIFY> No data found for %s" % section)
+                    
+    def set_status(self, section = None):
+        if section:
+            self.status[section] = status = "OK" if self.ready else "FAIL" if exists(self.sumfile) else "SKIP"
+            self.logger.info("Checksums for %s [%s]" % (section, status))
+            if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
 
+    def update_history(self, section = None):
+        data = self.history.data[section]
+        data['modified'] = now = datetime.utcnow()
+        status = self.status[section] if section in self.status else None
+        history = {'status': status, 'verified': now}
+        data['history'].append(history)
+        self.history.update(section = section)
+            
 class History:
     def __init__(self, observatory=None, mjd=None, mjd_log_dir = None, verbose=False):
         self.observatory = observatory
@@ -122,4 +138,21 @@ class History:
         self.mjd_log_dir = mjd_log_dir
         self.verbose = verbose
         if self.verbose: print("HISTORY> MJD log dir=%r" % self.mjd_log_dir)
+        self.set_jsonfile()
+        self.set_data_from_json()
         
+    def set_jsonfile(self, section = None):
+        self.jsonfile = join(self.mjd_log_dir, "verify_%s.json" % section) if exists(self.mjd_log_dir) and section else None
+        if self.verbose: print("HISTORY> JSONFILE %s" % self.jsonfile)
+        
+    def set_data_from_json(self, section = None):
+        if section and self.jsonfile and exists(jsonfile):
+            with open(self.jsonfile, 'r') as file: self.data[section]  = json.load(file)
+            if self.verbose: print("HISTORY> READING %s" % self.jsonfile)
+        else self.data[section] = {'MJD': self.mjd, 'section': section, 'history': []: 'modified': None}
+        
+    def update(self, section = None):
+        if section and self.jsonfile and section in self.data:
+            with open(self.jsonfile, 'w') as file: dump(self.data[section], file, indent=4)
+            if self.verbose: print("HISTORY> CREATE %s" % self.jsonfile)
+

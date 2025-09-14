@@ -72,6 +72,7 @@ class Transfer:
                 if verify.mjd_dir_nonempty:
                     self.summary.export_section(directory=verify.mjd_dir, section=section)
                     logger.info("Export summary for section={0}.".format(section))
+                    verify.history.set_status()
                 if not verify.ready:
                     logger.error("{0} does not appear to exist!".format(verify.sumfile))
                     break
