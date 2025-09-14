@@ -123,7 +123,7 @@ class Verify:
                     
     def set_status(self, section = None):
         if section:
-            self.status[section] = status = "NO DATA" if not self.mjd_dir_nonempty else "OK" if self.ready else "FAIL" if exists(self.sumfile) None
+            self.status[section] = status = "NO DATA" if not self.mjd_dir_nonempty else "OK" if self.ready else "FAIL" if exists(self.sumfile) else None
             self.logger.info("Checksums for %s [%s]" % (section, status))
             if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
 
