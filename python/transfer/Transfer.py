@@ -69,6 +69,7 @@ class Transfer:
             verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
             for section in self.sections:
                 verify.set_section(section = section)
+                verify.set_history_for_section(section = section)
                 if verify.mjd_dir_nonempty:
                     self.summary.export_section(directory=verify.mjd_dir, section=section)
                     logger.info("Export summary for section={0}.".format(section))

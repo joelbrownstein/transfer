@@ -116,6 +116,11 @@ class Verify:
                     self.logger.info("No data found for %s" % section)
                     if self.verbose: print("VERIFY> No data found for %s" % section)
                     
+    def set_history_for_section(self, section = None):
+        if section:
+            self.history.set_jsonfile(section = section)
+            self.history.set_data_from_json(section = section)
+                    
     def set_status(self, section = None):
         if section:
             self.status[section] = status = "OK" if self.ready else "FAIL" if exists(self.sumfile) else "SKIP"
@@ -123,7 +128,7 @@ class Verify:
             if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
 
     def update_history(self, section = None):
-        data = self.history.data[section] if section in self.history.data else {}
+        data = self.history.data[section]
         data['modified'] = now = datetime.utcnow()
         status = self.status[section] if section in self.status else None
         history = {'status': status, 'verified': now}
@@ -138,8 +143,6 @@ class History:
         self.verbose = verbose
         self.data = {}
         if self.verbose: print("HISTORY> MJD log dir=%r" % self.mjd_log_dir)
-        self.set_jsonfile()
-        self.set_data_from_json()
         
     def set_jsonfile(self, section = None):
         self.jsonfile = join(self.mjd_log_dir, "verify_%s.json" % section) if exists(self.mjd_log_dir) and section else None
