@@ -159,13 +159,16 @@ class History:
         pfx, ext = ( "verify_", ".json" )
         lpfx, lext = ( len(pfx), len(ext) )
         for mjd in self.mjd_history.keys():
+            print("MJD = %r" % mjd)
             self.mjd_history[mjd] = {}
             mjd_dir = join(dir, mjd)
             jsonfiles = [jsonfile for jsonfile in listdir(mjd_dir) if jsonfile.startswith(pfx) and jsonfile.endswith(ext)]
+            print("FOUND jsonfiles = %r" % jsonfiles)
             for jsonfile in jsonfiles:
                 section = jsonfile[lpfx:-lext]
                 path = join(self.mjd_log_dir, jsonfile)
                 with open(path, 'r') as file: self.mjd_history[mjd][section]  = load(file)
+        print("SET mjd_history = %r" % self.mjd_history)
         self.mjd_history = OrderedDict(sorted(self.mjd_history.items(), key=lambda item: item[0], reverse=True))
 
     def set_data_from_json(self, section = None):

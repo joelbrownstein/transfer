@@ -67,7 +67,7 @@ class Reverify:
             #        self.summary.save(stage=self.stage, status='failure')
             #        logger.critical("Errors verifying {0} data!".format(section))
 
-    def set_mjd_history(self): self.verify.set_mjd_history()
+    def set_mjd_history(self): self.verify.history.set_mjd_history()
         
     def save(self, mode = None):
         self.set_indexhtml(mode = mode)
