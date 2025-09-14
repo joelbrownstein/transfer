@@ -64,9 +64,8 @@ class Logging:
         if dir: self.dir = dir
         elif self.mjd_log_dir and exists(self.mjd_log_dir):
             ls = listdir(self.mjd_log_dir)
-            #n = max([int(d) for d in ls if not d.endswith('.json')]) + 1 if len(ls) > 0 else 0
-            n = max([int(d) for d in ls if '.' not in d]) + 1 if len(ls) > 0 else 0
-            self.dir = join(self.mjd_log_dir, str(n))
+            self.index = max([int(d) for d in ls if '.' not in d]) + 1 if len(ls) > 0 else 0
+            self.dir = join(self.mjd_log_dir, str(self.index))
             try:
                 makedirs(self.dir, self.perm)
                 if self.verbose: print("LOGGER> CREATE: %r" % self.dir)
