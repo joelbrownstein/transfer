@@ -21,7 +21,15 @@ class Reverify:
         self.debug = options.debug if options else debug
         self.ready = False
         self.stage = 'reverify'
+        self.set_verify()
     
+    def set_verify(self):
+        if self.ready:
+            self.logging.set_stage(stage=self.stage)
+            logger = self.logging.logger
+            options = self.config.options
+            self.verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, index = self.logging.index, stage = self.stage, debug = self.debug, verbose=self.verbose)
+
     def set_config(self):
         self.config = Config(observatory = self.observatory,  log_dir = self.log_dir, ini_mode = self.ini_mode, verbose = self.verbose)
         if not self.mjd: self.mjd = self.config.current_mjd()
@@ -40,16 +48,11 @@ class Reverify:
     
     def run_verify(self):
         if self.ready:
-            self.logging.set_stage(stage=self.stage)
-            logger = self.logging.logger
-            options = self.config.options
-            verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, index = self.logging.index, stage = self.stage, debug = self.debug, verbose=self.verbose)
-            verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
             for section in self.sections:
-                verify.set_section(section = section)
-                verify.set_status(section = section)
-                verify.set_history_for_section(section = section)
-                verify.update_history(section = section)
+                self.verify.set_section(section = section)
+                self.verify.set_status(section = section)
+                self.verify.set_history_for_section(section = section)
+                self.verify.update_history(section = section)
                 #if verify.mjd_dir_nonempty:
                 #    self.summary.export_section(directory=verify.mjd_dir, section=section)
                 #    logger.info("Export summary for section={0}.".format(section))
