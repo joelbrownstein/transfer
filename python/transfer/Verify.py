@@ -123,7 +123,7 @@ class Verify:
             if self.verbose: print("VERIFY> Checksums for %s [%s]" % (section, status))
 
     def update_history(self, section = None):
-        data = self.history.data[section]
+        data = self.history.data[section] if section in self.history.data else {}
         data['modified'] = now = datetime.utcnow()
         status = self.status[section] if section in self.status else None
         history = {'status': status, 'verified': now}
