@@ -28,6 +28,8 @@ class Reverify:
             logger = self.logging.logger
             options = self.config.options
             self.verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, index = self.logging.index, stage = self.stage, debug = self.debug, verbose=self.verbose)
+            self.verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
+
         else: self.verify = None
 
     def set_config(self):
@@ -65,7 +67,7 @@ class Reverify:
             #        self.summary.save(stage=self.stage, status='failure')
             #        logger.critical("Errors verifying {0} data!".format(section))
 
-    def set_mjd_history(self): self.verify.history.set_mjd_history()
+    def set_mjd_history(self): self.verify.set_mjd_history()
         
     def save(self, mode = None):
         self.set_indexhtml(mode = mode)
