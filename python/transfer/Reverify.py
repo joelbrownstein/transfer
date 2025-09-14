@@ -21,7 +21,6 @@ class Reverify:
         self.debug = options.debug if options else debug
         self.ready = False
         self.stage = 'reverify'
-        self.set_verify()
     
     def set_verify(self):
         if self.ready:
