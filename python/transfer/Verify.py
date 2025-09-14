@@ -130,7 +130,7 @@ class Verify:
 
     def update_history(self, section = None):
         data = self.history.data[section]
-        data['modified'] = now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())t
+        data['modified'] = now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())
         data['current_status'] = status
         data['current_index'] = self.index
         status = self.status[section] if section in self.status else None
