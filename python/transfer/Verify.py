@@ -112,7 +112,6 @@ class Verify:
                                         self.ready = False
                             chdir(oldwd)
                     else: self.ready = False
-                    self.set_status(section = section)
                 elif not self.mjd_dir_nonempty:
                     self.logger.info("No data found for %s" % section)
                     if self.verbose: print("VERIFY> No data found for %s" % section)

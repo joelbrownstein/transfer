@@ -43,6 +43,7 @@ class Reverify:
             verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
             for section in self.sections:
                 verify.set_section(section = section)
+                verify.set_status(section = section)
                 verify.set_history_for_section(section = section)
                 verify.update_history(section = section)
                 #if verify.mjd_dir_nonempty:
