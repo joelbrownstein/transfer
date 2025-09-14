@@ -44,6 +44,7 @@ class Reverify:
             for section in self.sections:
                 verify.set_section(section = section)
                 verify.set_history_for_section(section = section)
+                verify.update_history(section = section)
                 #if verify.mjd_dir_nonempty:
                 #    self.summary.export_section(directory=verify.mjd_dir, section=section)
                 #    logger.info("Export summary for section={0}.".format(section))

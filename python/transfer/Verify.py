@@ -156,6 +156,7 @@ class History:
         
     def update(self, section = None):
         if section and self.jsonfile and section in self.data:
+            action = "APPEND" if exists(self.jsonfile) else "CREATE"
             with open(self.jsonfile, 'w') as file: dump(self.data[section], file, indent=4)
             if self.verbose: print("HISTORY> CREATE %s" % self.jsonfile)
 
