@@ -133,9 +133,10 @@ class Verify:
         data['current_index'] = self.index
         status = self.status[section] if section in self.status else None
         data['current_status'] = status
+        now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())
         history = {'index': self.index, 'status': status, 'verified': now}
         data['history'].append(history)
-        data['modified'] = now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())
+        data['modified'] = now
         self.history.update(section = section)
             
 class History:
