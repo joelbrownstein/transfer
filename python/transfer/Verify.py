@@ -162,7 +162,10 @@ class History:
             print("MJD = %r" % mjd)
             self.mjd_history[mjd] = {}
             mjd_dir = join(dir, mjd)
-            jsonfiles = [jsonfile for jsonfile in listdir(mjd_dir) if jsonfile.startswith(pfx) and jsonfile.endswith(ext)]
+            print("MJD dir = %r" % mjd_dir)
+            jsonfiles = listdir(mjd_dir)
+            print("list dir = %r" % jsonfiles)
+            jsonfiles = [jsonfile for jsonfile in jsonfiles if jsonfile.startswith(pfx) and jsonfile.endswith(ext)]
             print("FOUND jsonfiles = %r" % jsonfiles)
             for jsonfile in jsonfiles:
                 section = jsonfile[lpfx:-lext]
