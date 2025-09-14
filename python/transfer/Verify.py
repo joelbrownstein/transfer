@@ -8,7 +8,7 @@ from time import gmtime, strftime
 
 class Verify:
 
-    def __init__(self, options=None, staging=None, observatory=None, mode=None, mjd=None, process=None, dir=None, logger=None, stage = None, debug = None, verbose=None):
+    def __init__(self, options=None, staging=None, observatory=None, mode=None, mjd=None, process=None, dir=None, logger=None, index = None, stage = None, debug = None, verbose=None):
         self.options = options
         self.staging = staging
         self.observatory = observatory
@@ -17,6 +17,7 @@ class Verify:
         self.process = process
         self.dir = dir
         self.logger = logger
+        self.index = index
         self.stage = stage
         self.debug = debug
         self.verbose = verbose
@@ -131,7 +132,7 @@ class Verify:
         data = self.history.data[section]
         data['modified'] = now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())
         status = self.status[section] if section in self.status else None
-        history = {'index': self.logger.index, 'status': status, 'verified': now}
+        history = {'index': self.index, 'status': status, 'verified': now}
         data['history'].append(history)
         self.history.update(section = section)
             

@@ -65,7 +65,7 @@ class Transfer:
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             options = self.config.options
-            verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, stage = self.stage, debug = self.debug, verbose=self.verbose)
+            verify = Verify(options = options, staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, index = self.logging.index, stage = self.stage, debug = self.debug, verbose=self.verbose)
             verify.set_history(mjd_log_dir = self.logging.mjd_log_dir)
             for section in self.sections:
                 verify.set_section(section = section)
