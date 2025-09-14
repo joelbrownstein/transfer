@@ -23,7 +23,6 @@ class Verify:
         self.sumfile = None
         self.ready = None
         self.status = {}
-        self.data = {}
 
     def set_history(self, mjd_log_dir=None):
         self.history = History(observatory = self.observatory, mjd = self.mjd, mjd_log_dir=mjd_log_dir, verbose = self.verbose)
@@ -137,6 +136,7 @@ class History:
         self.mjd = mjd
         self.mjd_log_dir = mjd_log_dir
         self.verbose = verbose
+        self.data = {}
         if self.verbose: print("HISTORY> MJD log dir=%r" % self.mjd_log_dir)
         self.set_jsonfile()
         self.set_data_from_json()
