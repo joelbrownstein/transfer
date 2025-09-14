@@ -150,7 +150,7 @@ class History:
         
     def set_data_from_json(self, section = None):
         if section and self.jsonfile and exists(self.jsonfile):
-            with open(self.jsonfile, 'r') as file: self.data[section]  = json.load(file)
+            with open(self.jsonfile, 'r') as file: self.data[section]  = load(file)
             if self.verbose: print("HISTORY> READING %s" % self.jsonfile)
         else: self.data[section] = {'MJD': self.mjd, 'section': section, 'history': [], 'modified': None}
         
