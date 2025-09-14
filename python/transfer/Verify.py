@@ -4,7 +4,7 @@ from os.path import join, exists, isdir, basename
 import re
 import gzip
 from json import loads, dump
-from datetime import datetime
+from time import gmtime, strftime
 
 class Verify:
 
@@ -129,7 +129,7 @@ class Verify:
 
     def update_history(self, section = None):
         data = self.history.data[section]
-        data['modified'] = now = datetime.utcnow()
+        data['modified'] = now = strftime('%Y-%m-%dT%H:%M:%S',gmtime())
         status = self.status[section] if section in self.status else None
         history = {'status': status, 'verified': now}
         data['history'].append(history)
