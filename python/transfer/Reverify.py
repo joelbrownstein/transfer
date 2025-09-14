@@ -23,7 +23,7 @@ class Reverify:
         self.stage = 'reverify'
     
     def set_verify(self):
-        if self.ready:
+        if self.logging.ready:
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             options = self.config.options
