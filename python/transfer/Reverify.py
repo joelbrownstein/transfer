@@ -3,8 +3,12 @@ from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
 import gzip
+from datetime import datetime
+
 
 class Reverify:
+
+    colors = {"failure":"text-error", "incomplete":"text-warning","success":"text-success"}
 
     def __init__(self, options=None, observatory=None, mjd=None, ini_mode=None, log_dir=None, include=None, exclude=None, debug=False, verbose=False):
         self.observatory = options.observatory if options else observatory
@@ -58,9 +62,33 @@ class Reverify:
             #        self.summary.save(stage=self.stage, status='failure')
             #        logger.critical("Errors verifying {0} data!".format(section))
 
-    def set_summary(self, mode=None, status=None):
-        self.summary = None
+    def set_mjd_history(self): self.verify.history.set_mjd_history()
         
+    def save(self, mode = None):
+        self.set_indexhtml(mode = mode)
+        self.write_indexfile()
+
+    def set_index_template(self):
+        try:
+            template_dir = join( environ['TRANSFER_TEMPLATE_DIR'], 'reverify')
+            loader = FileSystemLoader(template_dir)
+            self.index_template = Environment(loader=loader).get_template('index.html')
+        except Exception as e: self.index_template = None
+        if self.verbose: print("REVERIFY> index_template=%r" % self.index_template)
+
+    def set_indexhtml(self, mode = None):
+        title = [self.observatory.upper()] if self.observatory else []
+        if mode: title.append(mode.upper())
+        title = " ".join(title) if title else None
+        title = title + " Data Reverify Status" if title else " Data Reverify Status"
+        context = {'title': title, 'colors': self.colors, 'modified': datetime.utcnow(), 'observatory': self.observatory, 'mode': mode, 'mjd_history': self.verify.history.mjd_history}
+        self.indexhtml = self.index_template.render(context) if self.index_template else None
+
+    def write_indexfile(self):
+        if self.indexhtml:
+            if self.verbose: print("REVERIFY> WRITE: %r" % self.indexfile)
+            with open(self.indexfile,'w') as indexfile: indexfile.write(self.indexhtml)
+
     def done(self):
         self.logging.set_stage()
         self.logging.logger.info("Done!")

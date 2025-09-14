@@ -1,6 +1,6 @@
 from transfer import Config, Process, Logging
 from os import chdir, getcwd, listdir, environ, rmdir
-from os.path import join, exists, isdir, basename
+from os.path import join, exists, isdir, basename, dirname, split
 import re
 import gzip
 from json import load, dump
@@ -151,6 +151,22 @@ class History:
         self.jsonfile = join(self.mjd_log_dir, "verify_%s.json" % section) if exists(self.mjd_log_dir) and section else None
         if self.verbose: print("HISTORY> JSONFILE %s" % self.jsonfile)
         
+    def set_mjd_history(self):
+        dir = dirname(self.mjd_log_dir)
+        mjds = listdir(dir)
+        self.mjd_history = {basename(mjd):dirname(mjd) for mjd in mjds if basename(mjd).isdigit()}
+        pfx, ext = ( "verify_", ".json" )
+        lpfx, lext = ( len(pfx), len(ext) )
+        for mjd in self.mjd_history.keys():
+            self.mjd_history[mjd] = {}
+            mjd_dir = join(dir, mjd)
+            jsonfiles = [jsonfile for jsonfile in listdir(mjd_dir) if jsonfile.startswith(pfx) and jsonfile.endswith(ext)]
+            for jsonfile in jsonfiles:
+                section = jsonfile[lpfx:-lext]
+                path = join(self.mjd_log_dir, jsonfile)
+                with open(path, 'r') as file: self.mjd_history[mjd][section]  = load(file)
+        self.mjd_history = OrderedDict(sorted(self.mjd_history.items(), key=lambda item: item[0], reverse=True))
+
     def set_data_from_json(self, section = None):
         if section and self.jsonfile and exists(self.jsonfile):
             with open(self.jsonfile, 'r') as file: self.data[section]  = load(file)

@@ -14,8 +14,9 @@ if reverify.logging.ready:
     reverify.set_process(program=program)
     if reverify.process.ready:
         reverify.set_sections()
-        reverify.set_summary(mode = mode)
         reverify.run_verify()
+        reverify.set_summary(mode = mode)
+        reverify.save(mode = mode)
         reverify.done()
     else:
         reverify.process.logger.critical("Detected another %s %s data reverify job running. Done!" % (observatory.upper(), mode.upper()))

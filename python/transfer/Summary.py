@@ -80,7 +80,8 @@ class Summary:
 
     def set_index_template(self):
         try:
-            loader = FileSystemLoader(environ['TRANSFER_TEMPLATE_DIR'])
+            template_dir = join( environ['TRANSFER_TEMPLATE_DIR'], 'summary')
+            loader = FileSystemLoader(template_dir)
             self.index_template = Environment(loader=loader).get_template('index.html')
         except Exception as e: self.index_template = None
         if self.verbose: print("SUMMARY> index_template=%r" % self.index_template)
