@@ -86,7 +86,8 @@ class Reverify:
         if mode: title.append(mode.upper())
         title = " ".join(title) if title else None
         title = title + " Data Reverify Status" if title else " Data Reverify Status"
-        context = {'title': title, 'colors': self.colors, 'modified': datetime.utcnow(), 'observatory': self.observatory, 'mode': mode, 'mjd_history': self.verify.history.mjd_history}
+        sections = ['apogee', 'boss', 'manga'] if observatory == 'apo' else ['apogee', 'boss', 'lvm']
+        context = {'title': title, 'sections': sections, 'colors': self.colors, 'modified': datetime.utcnow(), 'observatory': self.observatory, 'mode': mode, 'histories': self.verify.history.mjd_history}
         self.indexhtml = self.index_template.render(context) if self.index_template else None
 
     def write_indexfile(self):
