@@ -6,6 +6,7 @@ options = arg.options
 options.observatory = observatory = 'lco'
 options.ini_mode = mode = 'mos'
 options.log_dir = 'reverify/%s' % mode
+options.include = ['apogee', 'boss']
 reverify = Reverify(options = options)
 reverify.set_config()
 reverify.set_logging()

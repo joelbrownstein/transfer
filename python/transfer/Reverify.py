@@ -85,8 +85,10 @@ class Reverify:
             template_dir = join( environ['TRANSFER_TEMPLATE_DIR'], 'reverify')
             loader = FileSystemLoader(template_dir)
             self.index_template = Environment(loader=loader).get_template('index.html')
-        except Exception as e: self.index_template = None
-        if self.verbose: print("REVERIFY> index_template=%r" % self.index_template)
+        except Exception as e:
+            self.index_template = None
+            if self.verbose: print("TEMPLATE> %r" % e)
+       if self.verbose: print("REVERIFY> index_template=%r" % self.index_template)
 
     def set_indexhtml(self, mode = None):
         title = [self.observatory.upper()] if self.observatory else []
