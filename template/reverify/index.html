@@ -24,10 +24,7 @@
                     <tbody>
                         {% for history in histories -%}
                         <tr>
-                            <td>mjd</td>
-                            <td>infrared</td>
-                            <td>optical</td>
-                            <td>ifu</td>
+                            <td>{{ history }}</td>{% for section in sections %}<td>{{ section }}</td>{% endfor %}
                         </tr>
                         {%- endfor %}
                     </tbody>
