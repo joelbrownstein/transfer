@@ -17,9 +17,9 @@
         <div class="row-fluid">
             <div class="span12">
                 <table class="table table-striped table-condensed">
-                    <caption>MJD Status</caption>
+                    <caption>MJD Reverify Status</caption>
                     <thead>
-                        <tr><th>MJD</th>{% for sections in sections %}<th>{{ section | upper }}</th>{% endfor %}</tr>
+                        <tr><th>MJD</th>{% for section in sections %}<th>{{ section | upper }}</th>{% endfor %}</tr>
                     </thead>
                     <tbody>
                         {% for history in histories -%}

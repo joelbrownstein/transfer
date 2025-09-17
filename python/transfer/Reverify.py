@@ -92,8 +92,8 @@ class Reverify:
         title = [self.observatory.upper()] if self.observatory else []
         if mode: title.append(mode.upper())
         title = " ".join(title) if title else None
-        title = title + " Data Reverify Status" if title else " Data Reverify Status"
-        sections = ['apogee', 'boss', 'manga'] if self.observatory == 'apo' else ['apogee', 'boss', 'lvm']
+        title = title + " Data Reverify Progress" if title else " Data Reverify Progress"
+        sections = ['apogee', 'boss', 'manga'] if self.observatory == 'apo' else ['apogee', 'boss'] if mode == 'mos' else ['lvm']
         context = {'title': title, 'sections': sections, 'colors': self.colors, 'modified': datetime.utcnow(), 'observatory': self.observatory, 'mode': mode, 'histories': self.verify.history.mjd_history}
         self.indexhtml = self.index_template.render(context) if self.index_template else None
 
