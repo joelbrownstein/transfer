@@ -1,4 +1,5 @@
 from transfer import Config, Process, Logging, Verify
+from jinja2 import Environment, FileSystemLoader
 from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
@@ -70,8 +71,14 @@ class Reverify:
     def set_mjd_history(self): self.verify.history.set_mjd_history()
         
     def save(self, mode = None):
+        self.set_index_template()
         self.set_indexhtml(mode = mode)
+        self.set_indexfile()
         self.write_indexfile()
+
+    def set_indexfile(self):
+        self.indexfile = join(dirname(self.logging.mjd_log_dir), 'index.html')
+        if self.verbose: print("REVERIFY> indexfile=%r" % self.indexfile)
 
     def set_index_template(self):
         try:
