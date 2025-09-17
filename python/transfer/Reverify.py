@@ -1,7 +1,7 @@
 from transfer import Config, Process, Logging, Verify
 from jinja2 import Environment, FileSystemLoader
 from os import chdir, getcwd, listdir, environ, rmdir
-from os.path import join, exists, isdir, basename
+from os.path import join, exists, isdir, basename, dirname
 import re
 import gzip
 from datetime import datetime
