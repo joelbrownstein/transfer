@@ -16,7 +16,7 @@ if reverify.logging.ready:
     if reverify.process.ready:
         reverify.set_sections()
         reverify.run_verify()
-        reverify.set_summary(mode = mode)
+        reverify.set_mjd_history()
         reverify.save(mode = mode)
         reverify.done()
     else:
