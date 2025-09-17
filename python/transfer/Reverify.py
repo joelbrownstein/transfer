@@ -88,7 +88,7 @@ class Reverify:
         except Exception as e:
             self.index_template = None
             if self.verbose: print("TEMPLATE> %r" % e)
-       if self.verbose: print("REVERIFY> index_template=%r" % self.index_template)
+        if self.verbose: print("REVERIFY> index_template=%r" % self.index_template)
 
     def set_indexhtml(self, mode = None):
         title = [self.observatory.upper()] if self.observatory else []
