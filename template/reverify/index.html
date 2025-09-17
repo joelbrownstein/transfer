@@ -22,9 +22,9 @@
                         <tr><th>MJD</th>{% for section in sections %}<th>{{ section | upper }}</th>{% endfor %}</tr>
                     </thead>
                     <tbody>
-                        {% for history in histories -%}
+                        {% for mjd, history in histories.items() -%}
                         <tr>
-                            <td>{{ history }}</td>{% for section in sections %}<td>{{ section }}</td>{% endfor %}
+                            <td>{{ mjd }}</td>{% for section in sections %}<td>{% if loop.first %}{{ history }}{% endfor %}</td>{% endfor %}
                         </tr>
                         {%- endfor %}
                     </tbody>
