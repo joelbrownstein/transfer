@@ -24,7 +24,7 @@
                     <tbody>
                         {% for mjd, history in histories.items() -%}
                         <tr>
-                            <td>{{ mjd }}</td>{% for section in sections %}<td>{% if loop.first %}{{ history }}{% endfor %}</td>{% endfor %}
+                            <td>{{ mjd }}</td>{% for section in sections %}<td>{% if loop.first %}{{ history }}{% endif %}</td>{% endfor %}
                         </tr>
                         {%- endfor %}
                     </tbody>
