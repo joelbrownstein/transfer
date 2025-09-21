@@ -24,7 +24,9 @@
                     <tbody>
                         {% for mjd, history in histories.items() -%}
                         <tr>
-                            <td>{{ mjd }}</td>{% for section in sections %}<td>{% if loop.first %}{{ history }}{% endif %}</td>{% endfor %}
+                            <td><a href=''>{{ mjd }}</a></td>{% for section in sections -%}
+                            <td class="{{ color }}"><abbr title="dark side">{% if status %}{{ status | upper }}{% else %}--{% endif %}</abbr></td>
+                            {%- endfor %}
                         </tr>
                         {%- endfor %}
                     </tbody>
