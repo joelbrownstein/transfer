@@ -6,7 +6,7 @@ options = arg.options
 options.observatory = observatory = 'lco'
 options.ini_mode = mode = 'lvm'
 options.log_dir = 'reverify/%s' % mode
-options.include = ['lvm_spectro']
+if not options.include: options.include = ['lvm_spectro']
 reverify = Reverify(options = options)
 reverify.set_config()
 reverify.set_logging()
