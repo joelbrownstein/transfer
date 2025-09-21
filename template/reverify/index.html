@@ -25,7 +25,7 @@
                         {% for mjd, history in histories.items() -%}
                         <tr>
                             <td><a href=''>{{ mjd }}</a></td>{% for section in sections -%}{% set status = section.status %}{% set verified = section.verified %}
-                            <td class="{{ color }}"><abbr title="dark side">{% if status %}{{ status | upper }}: {{ section.__dict__ }} {% else %}--{% endif %}</abbr></td>
+                            <td class="{{ color }}"><abbr title="dark side">{% if status %}{{ status | upper }}: {{ verified }} {% else %}-- {{ section.__dict__ }}{% endif %}</abbr></td>
                             {%- endfor %}
                         </tr>
                         {%- endfor %}
