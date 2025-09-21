@@ -169,7 +169,7 @@ class History:
             print("FOUND jsonfiles = %r" % jsonfiles)
             for jsonfile in jsonfiles:
                 section = jsonfile[lpfx:-lext]
-                path = join(self.mjd_log_dir, jsonfile)
+                path = join(mjd_dir, jsonfile)
                 with open(path, 'r') as file: self.mjd_history[mjd][section]  = load(file)
         print("SET mjd_history = %r" % self.mjd_history)
         self.mjd_history = OrderedDict(sorted(self.mjd_history.items(), key=lambda item: item[0], reverse=True))
