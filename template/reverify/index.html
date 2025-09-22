@@ -24,8 +24,8 @@
                     <tbody>
                         {% for mjd, history in histories.items() -%}{% set history = histories[mjd] if mjd in histories else None %}
                         {% if history %}<tr>
-                            <td><a href=''>{{ mjd }}</a></td>{% for section, info in history.items() -%}{% set status = info.current_status %}{% set modified = info.modified  %}
-                            <td class="{{ color }}"><abbr title="dark side">{% if status %}{{ status | upper }}: {{ modified }} {% else %}-- {{ history.__dict__ }}{% endif %}</abbr></td>
+                            <td><a href='./{{ history.mjd }}/{{ history.current_index }}>{{ mjd }}</a></td>{% for section, info in history.items() -%}{% set status = info.current_status %}{% set modified = info.modified  %}
+                            <td class="{{ color }}">{% if status %}{{ status | upper }} as of {{ modified }} {% else %}--{% endif %}</td>
                             {%- endfor %}
                         </tr>{% endif %}
                         {%- endfor %}
