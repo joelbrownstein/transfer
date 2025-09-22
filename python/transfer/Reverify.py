@@ -9,7 +9,7 @@ from datetime import datetime
 
 class Reverify:
 
-    colors = {"failure":"text-error", "incomplete":"text-warning","success":"text-success"}
+    colors = {"FAIL":"text-error", "NO DATA":"text-warning","OK":"text-success"}
 
     def __init__(self, options=None, observatory=None, mjd=None, ini_mode=None, log_dir=None, include=None, exclude=None, debug=False, verbose=False):
         self.observatory = options.observatory if options else observatory
