@@ -178,7 +178,7 @@ class History:
         if section and self.jsonfile and exists(self.jsonfile):
             with open(self.jsonfile, 'r') as file: self.data[section]  = load(file)
             if self.verbose: print("HISTORY> READING %s" % self.jsonfile)
-        else: self.data[section] = {'MJD': self.mjd, 'section': section, 'history': [], 'modified': None}
+        else: self.data[section] = {'mjd': self.mjd, 'section': section, 'history': [], 'modified': None}
         
     def update(self, section = None):
         if section and self.jsonfile and section in self.data:
