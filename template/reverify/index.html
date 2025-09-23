@@ -10,9 +10,17 @@
 </head>
 <body>
     <div class="container-fluid">
+        {% set alt_observatory = "apo" if ( observatory=='lco' and mode=='mos') else "lco" if observatory=='apo' else None %}
+        {% set alt_mode = "lvm" if ( mode=='mos' and observatory=='lco' ) else "mos" if ( mode=='lvm' and observatory=='lco' ) else None %}
+        {% set alt_observatory_link = "https://data.sdss5.org/sas/sdsswork/data/staging/%s/reverify/%s/" % ( alt_observatory, mode ) if alt_observatory else None %}
+        {% set alt_mode_link = "https://data.sdss5.org/sas/sdsswork/data/staging/%s/reverify/%s/" % ( observatory, alt_mode ) if alt_mode else None %}
         <div class="masthead">
             <h1>SDSS</h1>
             <h2>{{ title }}</h2>
+            <p>If you are looking for:<ul>
+                {% if alt_observatory and alt_observatory_link%}<li>the {{ alt_observatory }} data reverify progress page, please see <a href="{{alt_observatory_link}}">{{alt_observatory_link}}</a></li>{% endif %}
+                {% if alt_mode and alt_mode_link %}<li>the {{ alt_mode }} data reverify progress page, please see <a href="{{alt_mode_link}}">{{alt_mode_link}}</a></li>{% endif %}
+            </ul></p>
         </div>
         <div class="row-fluid">
             <div class="span12">
