@@ -6,6 +6,7 @@ from .Summary import Summary
 from .Report import Report
 from .Remote import Remote
 from .Globus import Globus
+from .Globus_cli import Globus_cli
 from .Rclone import Rclone
 from .Backup import Backup
 from .Copy import Copy

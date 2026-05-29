@@ -1,4 +1,4 @@
-from transfer import Process, Logging
+from transfer import Globus_cli, Logging
 from os import chdir, makedirs, environ, listdir
 from os.path import join, exists, basename, isdir
 from json import loads
@@ -26,7 +26,7 @@ class Mirror:
         self.set_dir()
         self.set_user()
         self.set_logger()
-        self.set_process()
+        self.set_globus_cli()
         self.set_endpoints()
         self.set_ready()
         self.info_message(message = "ready=%r" % self.ready)
@@ -46,7 +46,8 @@ class Mirror:
     def set_file(self):
         self.file = {ext:join(self.dir, "mirror.%s.%s" % (self.program, ext)) for ext in self.ext}
 
-    def set_process(self):  self.process = Process(program = self.program, logger = self.logger, verbose = self.verbose)
+    def set_globus_cli(self): self.globus_cli = Globus_cli()
+    #def set_process(self):  self.process = Process(program = self.program, logger = self.logger, verbose = self.verbose)
     def set_logger(self):
         self.logging = Logging(staging = self.staging, observatory = self.program, dir = self.dir, verbose = self.verbose)
         self.logger = self.logging.logger
