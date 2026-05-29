@@ -10,7 +10,7 @@ class Globus_cli:
     """
     A class to manage synchronous Globus data transfers between the 
     SDSS Admin Collection and the JHU IDIES endpoint, featuring automated 
-    token caching to bypass repeated Utah 2FA logins.
+    token caching to bypass repeated Utah 2FA logins. Fully optimized for SDK v4.
     """
     def __init__(self):
         # 1. Load configuration from system environment variables
@@ -52,8 +52,16 @@ class Globus_cli:
         auth_token_data = self.token_storage.get_token_data("auth.globus.org")
 
         if not transfer_token_data or not auth_token_data:
-            # We explicitly request refresh_tokens=True to survive token expiration
-            self.auth_client.oauth2_start_flow(refresh_tokens=True)
+            # SDK v4 Requirement: You must explicitly define all scopes you need
+            requested_scopes = [
+                globus_sdk.TransferClient.scopes.all, # Required for data transfers
+                "openid",                             # Required for whoami identity lookup
+                "profile",
+                "email"
+            ]
+            
+            # Initialize the login flow with the defined scopes
+            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True)
             
             print("\n[Globus Auth] No cached tokens found. Initializing secure one-time authentication.")
             print(f"Please log in here (requires Utah 2FA):\n{self.auth_client.oauth2_get_authorize_url()}\n")
@@ -168,10 +176,11 @@ class Globus_cli:
             return False
 
         logger.info("Both endpoints are online. Building transfer dataset...")
+        
+        # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
         transfer_data = globus_sdk.TransferData(
-            transfer_client, 
-            self.source_endpoint, 
-            self.destination_endpoint, 
+            source_endpoint=self.source_endpoint, 
+            destination_endpoint=self.destination_endpoint, 
             label=transfer_label, 
             sync_level="checksum"
         )
