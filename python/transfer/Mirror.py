@@ -199,10 +199,11 @@ class Mirror:
         self.identifier = None
 
     def set_active_user(self):
-        self.set_whoami()
-        if self.whoami:
+        self.globus_cli.set_whoami()
+        whoami = self.globus_cli.whoami
+        if whoami:
             gid = '@globusid.org'
-            self.active_user = self.whoami[:-len(gid)] if self.whoami.endswith(gid) else self.whoami
+            self.active_user = whoami[:-len(gid)] if whoami.endswith(gid) else whoami
         else: self.active_user = None
         return self.active_user
 

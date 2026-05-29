@@ -19,14 +19,8 @@ class Globus_cli:
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
         self.product_directory = "/uufs/chpc.utah.edu/common/home/sdssadmin/test"
         
-        # 2. Set up the secure local token storage cache
-        self.token_file_path = os.path.expanduser("~/.globus/globus-auth.json")
-        self.token_storage = JSONTokenStorage(self.token_file_path)
-        
-        # 3. Validate environment setup immediately on instantiation
+        self.set_token()
         self._validate_environment()
-        
-        # 4. Initialize the foundational Native Application Auth Client
         self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
 
     def _validate_environment(self):
@@ -42,23 +36,23 @@ class Globus_cli:
             logger.critical(error_message)
             raise EnvironmentError(error_message)
 
-    def _ensure_authenticated(self):
+    def set_token(self):
         """
         Validates cached tokens or prompts for a one-time 2FA login.
         Returns authorizers for both Transfer and Auth API operations.
         """
+        
+        self.token = {}
+        self.token['file_path'] = os.path.expanduser("~/.globus/globus-auth.json")
+        self.token['storage'] = JSONTokenStorage(self.token['file_path'])
+
         # Attempt to load existing credentials from disk
-        transfer_token_data = self.token_storage.get_token_data("transfer.api.globus.org")
-        auth_token_data = self.token_storage.get_token_data("auth.globus.org")
+        transfer_token_data = self.token['storage'].get_token_data("transfer.api.globus.org")
+        auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
 
         if not transfer_token_data or not auth_token_data:
             # SDK v4 Requirement: You must explicitly define all scopes you need
-            requested_scopes = [
-                globus_sdk.TransferClient.scopes.all, # Required for data transfers
-                "openid",                             # Required for whoami identity lookup
-                "profile",
-                "email"
-            ]
+            requested_scopes = [ globus_sdk.TransferClient.scopes.all, "openid", "profile", "email" ]
             
             # Initialize the login flow with the defined scopes
             self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True)
@@ -70,55 +64,50 @@ class Globus_cli:
             token_response = self.auth_client.oauth2_exchange_code_for_tokens(authorization_code)
             
             # Save the tokens securely to ~/.sdss_transfer_tokens.json
-            self.token_storage.store_token_response(token_response)
+            self.token['storage'].store_token_response(token_response)
             print("[Globus Auth] Tokens successfully cached! You will not need to do this step again.\n")
             
             # Reload the data from our newly written cache
-            transfer_token_data = self.token_storage.get_token_data("transfer.api.globus.org")
-            auth_token_data = self.token_storage.get_token_data("auth.globus.org")
+            transfer_token_data = self.token['storage'].get_token_data("transfer.api.globus.org")
+            auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
 
         # Create Transfer Authorizer (automatically saves to disk when tokens refresh)
-        transfer_authorizer = globus_sdk.RefreshTokenAuthorizer(
+        self.token['transfer_authorizer'] = globus_sdk.RefreshTokenAuthorizer(
             transfer_token_data.refresh_token, 
             self.auth_client, 
             access_token=transfer_token_data.access_token, 
             expires_at=transfer_token_data.expires_at_seconds,
-            on_refresh=self.token_storage.store_token_response
+            on_refresh=self.token['storage'].store_token_response
         )
 
         # Create Auth Authorizer (needed for identity lookups like 'whoami')
-        auth_authorizer = globus_sdk.RefreshTokenAuthorizer(
+        self.token['auth_authorizer'] = globus_sdk.RefreshTokenAuthorizer(
             auth_token_data.refresh_token, 
             self.auth_client, 
             access_token=auth_token_data.access_token, 
             expires_at=auth_token_data.expires_at_seconds,
-            on_refresh=self.token_storage.store_token_response
+            on_refresh=self.token['storage'].store_token_response
         )
 
-        return transfer_authorizer, auth_authorizer
-
-    def whoami(self):
+    def set_whoami(self):
         """
         Retrieves and prints the active user's identity details using 
         the cached tokens, mimicking the `globus whoami` CLI command.
         """
-        _, auth_authorizer = self._ensure_authenticated()
         
         # Create a new AuthClient specifically bound to the user's authorizer
-        bound_auth_client = globus_sdk.AuthClient(authorizer=auth_authorizer)
+        bound_auth_client = globus_sdk.AuthClient(authorizer=self.token['auth_authorizer']) if self.token else None
         
         try:
+            self.whoami = {}
             user_profile = bound_auth_client.userinfo()
-            print("\n--- GLOBUS WHOAMI ---")
-            print(f"Username: {user_profile.get('username')}")
-            print(f"Name:     {user_profile.get('name')}")
-            print(f"Email:    {user_profile.get('email')}")
-            print(f"ID:       {user_profile.get('sub')}")
-            print("---------------------\n")
-            return user_profile
+            self.whoami['username'] = user_profile.get('preferred_username') or user_profile.get('username')
+            self.whoami['username'] = user_profile.get('name')
+            self.whoami['email'] = user_profile.get('email')
+            self.whoami['id'] = user_profile.get('sub')
         except Exception as error:
             logger.error(f"Failed to fetch user info: {str(error)}")
-            return None
+            self.whoami = None
 
     def _is_endpoint_accessible(self, transfer_client, endpoint_id, label="Endpoint"):
         """
@@ -162,7 +151,7 @@ class Globus_cli:
         transfer_label = label or f"SDSS to JHU: {keyword}"
         
         # Load tokens from cache or prompt for login
-        transfer_authorizer, _ = self._ensure_authenticated()
+        transfer_authorizer, _ = self.set_token()
         transfer_client = globus_sdk.TransferClient(authorizer=transfer_authorizer)
         
         logger.info("Initiating pre-transfer endpoint validation...")
