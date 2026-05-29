@@ -19,9 +19,9 @@ class Globus_cli:
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
         self.product_directory = "/uufs/chpc.utah.edu/common/home/sdssadmin/test"
         
-        self.set_token()
         self._validate_environment()
         self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
+        self.set_token()
 
     def _validate_environment(self):
         """Internal helper to ensure all necessary environment variables exist."""
