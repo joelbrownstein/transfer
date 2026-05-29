@@ -17,7 +17,7 @@ class Globus_cli:
         self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
         self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
-        self.product_directory = os.environ.get("PRODUCT_DIR")
+        self.product_directory = "/uufs/chpc.utah.edu/common/home/sdssadmin/test"
         
         # 2. Set up the secure local token storage cache
         self.token_file_path = os.path.expanduser("~/.globus/globus-auth.json")
