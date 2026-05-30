@@ -21,6 +21,11 @@ def transfer_mirror(options = None):
         if options.mjd: print("TRANSFER MJD %r> Not ready!" % options.mjd)
         else: print("TRANSFER> Not ready!")
 
+debug = True
+if debug:
+    options.identifier = "TEST> GLOBUS UTAH CHPC to JHU IDIES"
+    options.verbose = True
+    options.location = 'dr8/sdss/spectro/data/55025'
 if options.mjdlist:
     for options.mjd in options.mjdlist: transfer_mirror(options = options)
 else: transfer_mirror(options = options)

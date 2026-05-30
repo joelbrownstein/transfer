@@ -41,7 +41,7 @@ class Mirror:
         for dir, env in self.dir.items():
             try: self.dir[dir] = environ[env]
             except: self.dir[dir] = None
-            if self.dir and self.dir['dir] and exists(self.dir[dir]):
+            if self.dir and self.dir[dir] and exists(self.dir[dir]):
                 if self.location:
                     self.dir[dir] = join(self.dir[dir], self.location)
                     if not exists(self.dir[dir]): makedirs(self.dir[dir])
