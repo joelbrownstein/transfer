@@ -204,11 +204,11 @@ class Globus_cli:
                 self.transfer = self.client.submit_transfer(transfer_data)
                 self.task_id = self.transfer["task_id"]
                 self.task = self.client.get_task(self.task_id)
-                message = f"Transfer submitted successfully. Task ID={task_id} for task {task}"
+                message = f"Transfer submitted successfully. Task ID={self.task_id} for task {self.task}"
                 if self.verbose: print("GLOBUS> %s" % message)
-                self.logger.error(message)
+                self.logger.info(message)
             except globus_sdk.TransferAPIError as error:
-                message = "Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
+                message = f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
                 if self.verbose: print("GLOBUS> %s" % message)
                 self.logger.error(message)
                 self.transfer = self.task_id = self.task = None
