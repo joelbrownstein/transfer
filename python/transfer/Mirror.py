@@ -76,8 +76,9 @@ class Mirror:
         if self.item:
             self.globus_cli.execute_transfer(items = self.item, options = self.options)
             self.transfer = self.globus_cli.task
-        else: self.transfer = None
-        else: self.info_message(message = "no items to transfer")
+        else:
+            self.transfer = None
+            self.info_message(message = "no items to transfer")
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
