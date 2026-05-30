@@ -18,6 +18,8 @@ if options.mjdlist:
             mirror.wait()
             mirror.write_file()
             mirror.done()
+        else:
+            print("TRANSFER MJD %r> Not ready!" % options.mjd)
 else:
     mirror = Mirror(options=options)
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
@@ -27,5 +29,5 @@ else:
         mirror.wait()
         mirror.write_file()
         mirror.done()
-else:
-    print("TRANSFER> Not ready!")
+    else:
+        print("TRANSFER> Not ready!")
