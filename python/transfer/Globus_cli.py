@@ -177,7 +177,7 @@ class Globus_cli:
             delete = options['delete'] if 'delete' in options else None
             fail_on_quota_errors = options['fail_on_quota_errors'] if 'fail_on_quota_errors' in options else None
         
-            if self.verbose: print("GLOBUS> Executing transfer mode %s [%r items]" % (options['mode'], items))
+            if self.verbose: print("GLOBUS> Executing transfer mode %s [%r items]" % (options['mode'], len(items)))
             # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
             transfer_data = globus_sdk.TransferData(
                 source_endpoint=self.source_endpoint, 
@@ -190,6 +190,7 @@ class Globus_cli:
                 delete_destination_extra=delete,
                 fail_on_quota_errors=fail_on_quota_errors
             )
+            if self.verbose: print("GLOBUS> Adding %r items" % len(items))
             for label, item in items.items():
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
                 if self.verbose:
@@ -197,16 +198,23 @@ class Globus_cli:
                     message += "with source=%(source)r and destination=%(destination)r" % item
                     print(message)
             try:
-                self.logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
-                submit_result = self.client.submit_transfer(transfer_data)
+                message = f"Submitting transfer from {source_path} to {destination_directory}..."
+                self.logger.info(message)
+                if self.verbose: print("GLOBUS> %s" % message)
                 self.task_id = submit_result["task_id"]
                 self.task = self.client.get_task(self.task_id)
-                self.logger.info(f"Transfer submitted successfully. Task ID={task_id} for task {task}")
+                message = f"Transfer submitted successfully. Task ID={task_id} for task {task}"
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.logger.error(message)
             except globus_sdk.TransferAPIError as error:
-                self.logger.error(f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}")
+                message = "Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.logger.error(message)
                 self.task_id = self.task = None
             except Exception as error:
-                self.logger.error(f"Unexpected error during transfer lifecycle={str(error)}")
+                message = f"Unexpected error during transfer lifecycle={str(error)}"
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.logger.error(message)
                 self.task_id = self.task = None
         else: self.task_id = self.task = None
                
