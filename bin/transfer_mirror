@@ -15,9 +15,12 @@ if options.mjdlist:
         if mirror.ready:
             mirror.append_item()
             mirror.execute_transfer()
-            mirror.wait()
-            mirror.write_file()
-            mirror.done()
+            if mirror.transfer:
+                mirror.wait()
+                mirror.write_file()
+                mirror.done()
+            else:
+                print("TRANSFER MJD %r> SKIP" % options.mjd)
         else:
             print("TRANSFER MJD %r> Not ready!" % options.mjd)
 else:
@@ -26,8 +29,11 @@ else:
     if mirror.ready:
         mirror.append_item()
         mirror.execute_transfer()
-        mirror.wait()
-        mirror.write_file()
-        mirror.done()
+        if mirror.transfer:
+            mirror.wait()
+            mirror.write_file()
+            mirror.done()
+        else:
+            print("TRANSFER MJD %r> SKIP transfer" % options.mjd)
     else:
         print("TRANSFER> Not ready!")

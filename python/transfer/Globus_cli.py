@@ -29,6 +29,7 @@ class Globus_cli:
             self.set_client()
             self.set_endpoint()
         else: self.token = self.client = self.endpoint = None
+        self.task_id = None
         
     def set_endpoint(self):
         self.endpoint = {}
@@ -170,7 +171,6 @@ class Globus_cli:
         Validates both endpoints, dynamically constructs paths, 
         and executes the transfer securely, blocking until completion.
         """
-        self.task_id = None
         
         if items and options:
             label = options['label'] if 'label' in options else "sdss-transfer"
