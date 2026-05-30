@@ -3,7 +3,7 @@ from transfer import Mirror, Argument
 debug = True # False for automated dail run
 arg = Argument('transfer_mirror')
 options = arg.options
-if debug
+if debug:
     options.identifier = "TEST> GLOBUS UTAH CHPC to JHU IDIES"
     options.verbose = True
     options.location = 'dr8/sdss/spectro/data/55025'
