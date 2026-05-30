@@ -3,7 +3,9 @@ from transfer import Mirror, Argument
 
 locations = ['dr8/sdss/spectro/data/55025']
 arg = Argument('transfer_mirror')
-mirror = Mirror(options=arg.options)
+options = arg.options
+options.verbose = True
+mirror = Mirror(options=options)
 if mirror.ready:
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
     for mirror.location in locations: mirror.append_item()

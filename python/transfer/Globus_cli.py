@@ -5,7 +5,7 @@ from globus_sdk.token_storage import JSONTokenStorage
 from globus_sdk.scopes import GCSCollectionScopes, TransferScopes
 
 # Configure a module-level logger
-logger = logging.getLogger("sdss_transfer.globus")
+
 
 class Globus_cli:
     """
@@ -16,7 +16,9 @@ class Globus_cli:
     
     endpoints = ['source', 'destination']
 
-    def __init__(self):
+    def __init__(self, logger = None, verbose = None):
+        self.logger = logger if logger else logging.getLogger("sdss_transfer.globus")
+        self.verbose = verbose
         self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
         self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
@@ -189,9 +191,9 @@ class Globus_cli:
                 delete_destination_extra=delete,
                 fail_on_quota_errors=fail_on_quota_errors
             )
-            for item in items:
+            for label, item in items.items():
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
-            
+                if self.verbose: print("Add item for label=%(label)r with source=%(source)r and destination=%r(destination)r" % item)
             try:
                 logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
                 submit_result = self.client.submit_transfer(transfer_data)
