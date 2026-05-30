@@ -4,6 +4,7 @@ from transfer import Mirror, Argument
 locations = ['dr8/sdss/spectro/data/55025']
 arg = Argument('transfer_mirror')
 options = arg.options
+options.identifier = "MIRROR UTAH CHPC to JHU IDIES"
 options.verbose = True
 mirror = Mirror(options=options)
 if mirror.ready:
