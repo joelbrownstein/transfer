@@ -75,6 +75,8 @@ class Mirror:
     def execute_transfer(self):
         if self.item:
             self.globus_cli.execute_transfer(items = self.item, options = self.options)
+            self.transfer = self.globus_cli.task
+        else: self.transfer = None
         else: self.info_message(message = "no items to transfer")
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
@@ -117,10 +119,10 @@ class Mirror:
         """
 
     def write_file(self):
-        if self.task:
+        if self.transfer:
             self.info_message(message = "Create %s" % self.file)
             file = open(self.file,'w')
-            file.write(self.task)
+            file.write(self.transfer)
             file.close()
                 
     def done(self):

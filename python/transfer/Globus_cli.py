@@ -202,11 +202,11 @@ class Globus_cli:
                 self.logger.info(f"Transfer submitted successfully. Task ID={task_id} for task {task}")
             except globus_sdk.TransferAPIError as error:
                 self.logger.error(f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}")
-                self.task_id = None
+                self.task_id = self.task = None
             except Exception as error:
                 self.logger.error(f"Unexpected error during transfer lifecycle={str(error)}")
-                self.task_id = None
-        else: self.task_id = None
+                self.task_id = self.task = None
+        else: self.task_id = self.task = None
                
     def wait(self, timeout=86400, polling_interval=10):
         if self.task_id:
