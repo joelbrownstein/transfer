@@ -130,7 +130,7 @@ class Globus_cli:
         
         if endpoint:
             try:
-                endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint of endpoint == "destination" else None
+                endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint if endpoint == "destination" else None
                 if endpoint_id:
                     endpoint_information = self.client.get_endpoint(endpoint_id)
                     if endpoint_information.get("non_functional") is True:
