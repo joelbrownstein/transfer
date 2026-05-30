@@ -206,10 +206,15 @@ class Globus_cli:
                 if self.verbose: print("GLOBUS> %s" % message)
                 self.transfer = self.client.submit_transfer(transfer_data)
                 self.task_id = self.transfer["task_id"]
-                self.task = self.client.get_task(self.task_id)
-                message = f"Transfer submitted successfully. Task ID={self.task_id} for task {self.task}"
-                if self.verbose: print("GLOBUS> %s" % message)
-                self.logger.info(message)
+                self.task = self.client.get_task(self.task_id) if self.task_id else None
+                if self.task:
+                    message = f"Transfer submitted successfully. Task ID={self.task_id} for task {self.task}"
+                    if self.verbose: print("GLOBUS> %s" % message)
+                    self.logger.info(message)
+                else:
+                    message = f"Transfer not found for Task ID={self.task_id} "
+                    if self.verbose: print("GLOBUS> %s" % message)
+                    self.logger.error(message)
             except globus_sdk.TransferAPIError as error:
                 message = f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
                 if self.verbose: print("GLOBUS> %s" % message)
