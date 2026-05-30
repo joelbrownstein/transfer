@@ -198,9 +198,10 @@ class Globus_cli:
                     message += "with source=%(source)r and destination=%(destination)r" % item
                     print(message)
             try:
-                message = f"Submitting transfer for label=%r" % label
+                message = f"Submitting transfer=%r for label=%r" % (transfer_data, label)
                 self.logger.info(message)
                 if self.verbose: print("GLOBUS> %s" % message)
+                submit_result = transfer_client.submit_transfer(transfer_data)
                 self.task_id = submit_result["task_id"]
                 self.task = self.client.get_task(self.task_id)
                 message = f"Transfer submitted successfully. Task ID={task_id} for task {task}"
