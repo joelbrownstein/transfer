@@ -19,7 +19,7 @@ class Globus_cli:
         self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
         self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
-        self.ready()
+        self.set_ready()
         if self.ready:
             self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
             self.set_token()
