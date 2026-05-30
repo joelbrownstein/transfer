@@ -53,11 +53,11 @@ class Mirror:
     def set_file(self):
         self.file = {'log': None, 'task': None, 'manifest': None}
         for file in self.file.keys():
-        if self.dir and self.dir[file] and self.identifier:
-            if getattr(self, 'mjd', None):
-                self.file[file] = join(self.dir[file], "mirror.%s.%d.json" % (self.identifier, self.mjd))
-            else:
-                self.file[file] = join(self.dir[file], "mirror.%s.json" % self.identifier)
+            if self.dir and self.dir[file] and self.identifier:
+                if getattr(self, 'mjd', None):
+                    self.file[file] = join(self.dir[file], "mirror.%s.%d.json" % (self.identifier, self.mjd))
+                else:
+                    self.file[file] = join(self.dir[file], "mirror.%s.json" % self.identifier)
 
     def set_globus_cli(self):
         self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
