@@ -26,7 +26,7 @@ class Mirror:
         self.base_dir = {}
         try:
             self.base_dir['source'] = environ['SAS_BASE_DIR']
-            transfer_mirror_dir = 'TRANSFER_MIRROR_DR_DIR if True else 'TRANSFER_MIRROR_IPL_DIR if False else 'SAM_BASE_DIR'
+            transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if True else "TRANSFER_MIRROR_IPL_DIR" if False else "SAM_BASE_DIR"
             try: self.base_dir['destination'] = environ[transfer_mirror_dir]
             except: self.base_dir = None
         except: self.base_dir = None
