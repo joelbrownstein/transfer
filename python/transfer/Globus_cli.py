@@ -63,11 +63,11 @@ class Globus_cli:
         auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
 
         if not transfer_token_data or not auth_token_data:
-            # SDK v4 Requirement: You must explicitly define all scopes you need
             requested_scopes = [ globus_sdk.TransferClient.scopes.all, "openid", "profile", "email" ]
             
             # Initialize the login flow with the defined scopes
-            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True)
+            query_params = {"session_required_single_domain": "utah.edu"}
+            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True, query_params=query_params)
             
             print("\n[Globus Auth] No cached tokens found. Initializing secure one-time authentication.")
             print(f"Please log in here (requires Utah 2FA):\n{self.auth_client.oauth2_get_authorize_url()}\n")
@@ -75,7 +75,6 @@ class Globus_cli:
             authorization_code = input("Enter the resulting authorization code: ").strip()
             token_response = self.auth_client.oauth2_exchange_code_for_tokens(authorization_code)
             
-            # Save the tokens securely to ~/.sdss_transfer_tokens.json
             self.token['storage'].store_token_response(token_response)
             print("[Globus Auth] Tokens successfully cached! You will not need to do this step again.\n")
             
@@ -133,15 +132,10 @@ class Globus_cli:
                 endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint if endpoint == "destination" else None
                 if endpoint_id:
                     endpoint_information = self.client.get_endpoint(endpoint_id)
-                    if endpoint_information.get("non_functional") is True:
+                    endpoint_available = endpoint_information.get("non_functional")
+                    if not endpoint_available:
                         logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
-                        endpoint_available = False
-                        
-                    if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
-                        if not endpoint_information.get("gcp_connected", True):
-                            logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal ({endpoint_id}) is offline.")
-                            endpoint_available = False
-
+        
                     test_path = endpoint_information.get("default_directory") or "/"
                     self.client.operation_ls(endpoint_id, path=test_path, limit=1)
                     
