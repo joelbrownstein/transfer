@@ -5,7 +5,7 @@ options = arg.options
 
 def transfer_mirror(options = None):
     mirror = Mirror(options=options)
-    mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True, sync = "0")
+    mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
     if mirror.ready:
         mirror.append_item()
         mirror.set_manifest()

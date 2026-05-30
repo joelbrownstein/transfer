@@ -209,7 +209,7 @@ class Globus_cli:
                 self.task_id = self.transfer["task_id"]
                 self.task = self.client.get_task(self.task_id) if self.task_id else None
                 if self.task:
-                    message = f"Transfer submitted successfully. Task ID={self.task_id} for task {self.task}"
+                    message = f"Transfer submitted successfully for Task ID={self.task_id}"
                     if self.verbose: print("GLOBUS> %s" % message)
                     self.logger.info(message)
                 else:
