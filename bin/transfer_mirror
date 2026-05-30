@@ -12,7 +12,7 @@ def transfer_mirror(options = None):
         mirror.execute_transfer()
         if mirror.transfer:
             mirror.wait()
-            mirror.write_logfile()
+            mirror.write_task_file()
             mirror.done()
         else:
             if options.mjd: print("TRANSFER MJD %r> SKIP" % options.mjd)
