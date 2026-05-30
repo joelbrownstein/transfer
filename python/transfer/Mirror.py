@@ -117,18 +117,20 @@ class Mirror:
         if self.globus_cli:
             self.globus_cli.wait()
             self.task = self.globus_cli.task
-            self.transfer = self.globus_cli.task
+            self.transfer = self.globus_cli.task  # Keep synchronized for the file writer
             self.status = self.globus_cli.status
             self.ready = self.status == "SUCCEEDED"
-        else:
-            self.status = "UNREADY"
-            self.ready = False
 
     def write_file(self):
         if self.transfer:
+            import json
             self.info_message(message = "Create %s" % self.file)
-            with open(self.file, 'w') as file: file.write(dumps(self.transfer.data, indent=4))
-
+            
+            # Extract and deserialize the document mapping safely from the Globus response object
+            with open(self.file, 'w') as file:
+                task_data = getattr(self.transfer, "data", self.transfer)
+                file.write(json.dumps(task_data, indent=4))
+                
     def done(self):
         self.info_message(message = "Done!")
         

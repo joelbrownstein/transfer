@@ -243,34 +243,47 @@ class Globus_cli:
 
     def wait(self, timeout=86400, polling_interval=5):
         if self.task_id:
-            self.logger.info("Waiting for transfer execution...")
-            start_time = time()
+            import sys
+            import time
+            
+            self.logger.info(f"Waiting for transfer task {self.task_id} execution...")
+            start_time = time.time()
             
             while True:
+                # Refresh the task object from the Globus API
                 self.task = self.client.get_task(self.task_id)
                 self.status = self.task["status"]
                 
                 if self.verbose:
+                    # Dynamically calculate progress metrics
                     bytes_mb = self.task.get("bytes_transferred", 0) / (1024 * 1024)
                     files_done = self.task.get("files_transferred", 0)
                     files_total = self.task.get("files", 0)
                     dirs_done = self.task.get("directories", 0)
-                    total_str = f"{files_total}" if files_total > 0 else "?"
-                    stdout.write(f"\rGLOBUS> Progress: {files_done}/{total_str} files | {dirs_done} dirs | {bytes_mb:.2f} MB | Status: {self.status}")
-                    stdout.flush()
+                    
+                    # Globus discovers total files dynamically; handle 0 gracefully
+                    total_files_str = f"{files_total}" if files_total > 0 else "?"
+                    
+                    # \r overwrites the line interactively in your console
+                    sys.stdout.write(
+                        f"\rGLOBUS> Progress: {files_done}/{total_files_str} files | "
+                        f"{dirs_done} dirs | {bytes_mb:.2f} MB | Status: {self.status}"
+                    )
+                    sys.stdout.flush()
 
+                # Break loop if task reaches a terminal state
                 if self.status in ["SUCCEEDED", "FAILED", "INACTIVE"]:
-                    if self.verbose: print()
+                    if self.verbose: print()  # Newline to preserve the final progress state
                     break
                     
-                if time() - start_time > timeout:
+                if time.time() - start_time > timeout:
                     if self.verbose: print()
-                    self.logger.error("Wait timeout exceeded.")
+                    self.logger.error("Wait timeout reached.")
                     break
                     
-                sleep(polling_interval)
+                time.sleep(polling_interval)
                 
-            # Log final results to the logger
+            # FIXED: All variables below safely use the 'self.' prefix to eliminate NameError
             if self.status == "SUCCEEDED":
                 self.logger.info(f"SUCCESS: Transfer task {self.task_id} completed smoothly.")
             elif self.status == "FAILED":
