@@ -9,6 +9,8 @@ class Mirror:
     sync = ['exists', 'size', 'mtime', 'checksum']
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
+manifest-53450.dr8_spectro_data.json
+transfer.dr8_spectro_data-manifest.53450.log
     
     def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
@@ -16,6 +18,7 @@ class Mirror:
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options else save_manifest
         self.manifest_only = options.manifest_only if options else manifest_only
+        if self.manifest_only: self.save_manifest = True
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.logger = logger
@@ -77,7 +80,7 @@ class Mirror:
         print("LOGGING> needed=%r" % True if not self.logger else False)
         if not self.logger:
             mode = "manifest" if self.manifest_only else None
-            mode_word = "%s only" % mode if mode else 'transfer'
+            mode_word = "%s-only" % mode if mode else 'transfer'
             print("LOGGING> staging=%r [%s mode]" % (self.staging, mode_word))
             self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
             self.logger = self.logging.logger
@@ -132,9 +135,8 @@ class Mirror:
             local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
             if local_manifest_dir and not exists(local_manifest_dir): makedirs(local_manifest_dir)
             
-            label = "manifest-%r" % self.mjd if self.mjd else "manifest"
-            filename = "%s.%s.json" % (label, self.identifier)
-            self.manifest['source'] = join(local_manifest_dir, filename)
+            self.manifest['source'] = self.file['manifest']
+            filename = basename(self.file['manifest'])
             with open(self.manifest['source'], 'w') as file:
                 dump(self.manifest['locations'], file, indent=4)
             self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
@@ -143,6 +145,7 @@ class Mirror:
             dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
             self.manifest['destination'] = join(dest_manifest_dir, filename)
             
+            label = "manifest-%r" % self.mjd if self.mjd else "manifest"
             self.item[label] = {
                 'source': self.manifest['source'],
                 'destination': self.manifest['destination'],
