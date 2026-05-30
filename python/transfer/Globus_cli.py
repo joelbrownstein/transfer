@@ -177,7 +177,7 @@ class Globus_cli:
             delete = options['delete'] if 'delete' in options else None
             fail_on_quota_errors = options['fail_on_quota_errors'] if 'fail_on_quota_errors' in options else None
         
-            if self.verbose: print("GLOBUS> Executing transfer mode %(mode)s [%r items]" % (options, items))
+            if self.verbose: print("GLOBUS> Executing transfer mode %s [%r items]" % (options['mode'], items))
             # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
             transfer_data = globus_sdk.TransferData(
                 source_endpoint=self.source_endpoint, 
