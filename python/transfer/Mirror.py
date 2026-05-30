@@ -148,8 +148,9 @@ class Mirror:
         if self.ready:
             self.globus_cli.set_whoami()
             whoami = self.globus_cli.whoami
-            #self.active_user = "%s <%s>" % whoami if whoami else None
-            self.active_user = "x"
+            try:
+                self.active_user = "%(username)s <%(email)s>" % whoami if whoami else None
+            except: self.active_user = None
         else: self.active_user = None
 
     def wait(self):

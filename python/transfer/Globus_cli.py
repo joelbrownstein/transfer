@@ -28,8 +28,11 @@ class Globus_cli:
             self.set_endpoint()
         else: self.token = self.client = self.endpoint = None
         
-    def set_endpoint(self):
-        self.endpoint = {endpoint: self.get_endpoint_available(endpoint = endpoint) for endpoint in self.endpoints}
+    def set_endpoint_info(self):
+        self.endpoint = {}
+        for endpoint in self.endpoints: 
+            self.set_endpoint_info(endpoint = endpoint)
+            self.endpoint[endpoint] = self.endpoint_info
         self.ready = all(self.endpoint.values())
 
     def set_ready(self):
@@ -128,7 +131,7 @@ class Globus_cli:
             logger.error(f"Failed to fetch user info: {str(error)}")
             self.whoami = None
 
-    def get_endpoint_available(self, endpoint = None):
+    def set_endpoint_info(self, endpoint = None):
         """
         Validates if an endpoint/collection is online and responsive.
         Aborts early if the target is down for maintenance or offline.
@@ -140,31 +143,26 @@ class Globus_cli:
                 endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint if endpoint == "destination" else None
                 if endpoint_id:
                     endpoint_information = self.client.get_endpoint(endpoint_id)
-                    endpoint_available = endpoint_information.get("non_functional")
+                    endpoint_available = not endpoint_information.get("non_functional")
                     if not endpoint_available:
                         logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
         
                     test_path = endpoint_information.get("default_directory") or "/"
-                    self.client.operation_ls(endpoint_id, path=test_path, limit=1)
+                    for self.endpoint_info in self.client.operation_ls(endpoint_id, path=test_path, limit=1): break
                     
                     logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}).")
-                    endpoint_available = True
-                else: endpoint_available = None
+                else: self.endpoint_info = None
 
             except globus_sdk.TransferAPIError as error:
                 if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
-                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
-                    endpoint_available = True
-                
-                logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
-                endpoint_available = False
+                    logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
+                else: logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
+                self.endpoint_info = None
             except Exception as error:
                 logger.error(f"Unexpected error when checking health: {str(error)}")
-                endpoint_available = False
-        else: endpoint_available = None
+                self.endpoint_info = None
+        else: self.endpoint_info = None
         
-        return endpoint_available
-
     def execute_transfer(self, items=None, options=None):
         """
         Validates both endpoints, dynamically constructs paths, 
