@@ -15,7 +15,7 @@ class Globus_cli:
 
     def __init__(self, logger = None, verbose = None):
         self.logger = logger if logger else logging.getLogger("sdss_transfer.globus")
-        self.verbose = verbose
+        self.verbose = True# verbose
         self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
         self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
