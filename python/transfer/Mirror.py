@@ -26,7 +26,6 @@ class Mirror:
         self.set_file()
         self.set_logger()
         self.set_globus_cli()
-        self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
     
     def set_base_dir(self):
         self.base_dir = {}
@@ -67,9 +66,12 @@ class Mirror:
             self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
             self.ready = self.globus_cli.ready
             self.set_active_user()
+            self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
         else:
             self.globus_cli = None
             self.ready = True
+            self.active_user = None
+            self.info_message(message = "ready=%r for manifest_only=%r" % (self.ready, self.manifest_only))
         
     def set_logger(self):
         print("LOGGING> needed=%r" % True if not self.logger else False)
