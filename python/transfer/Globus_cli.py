@@ -192,7 +192,7 @@ class Globus_cli:
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
                 if self.verbose:
                     message = "Add item for label=%r " % label
-                    message += "with source=%(source)r and destination=%r(destination)r" % item
+                    message += "with source=%(source)r and destination=%(destination)r" % item
                     print(message)
             try:
                 self.logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
