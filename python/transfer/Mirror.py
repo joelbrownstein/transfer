@@ -98,7 +98,7 @@ class Mirror:
             self.transfer = None
             self.info_message(message = "no items to transfer")
 
-    def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
+    def set_options(self, label=None, sync=None, preserve_mtime=False, recursive_symlinks=None, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
         self.options['label'] = label if label else self.identifier
         self.options['sync'] = sync if sync in self.sync else None
@@ -106,11 +106,13 @@ class Mirror:
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
         self.options['verify'] = verify
         self.options['preserve_mtime'] = preserve_mtime
+        self.options['recursive_symlinks'] = recursive_symlinks if recursive_symlinks else "keep"
         self.options['delete'] = delete
         self.options['encrypt'] = encrypt
         mode = []
         if self.options['sync']: mode.append("--sync-level %(sync)s")
         if self.options['preserve_mtime']: mode.append("--preserve-mtime")
+        if self.options['recursive_symlinks']: mode.append("--recursive_symlinks=%(recursive_symlinks)s")
         if self.options['encrypt']: mode.append("--encrypt")
         if self.options['fail_on_quota_errors']: mode.append("--fail-on-quota-errors")
         if self.options['verify']: mode.append("--verify-checksum")
