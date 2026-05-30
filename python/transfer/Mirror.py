@@ -108,11 +108,13 @@ class Mirror:
 
     def wait(self):
         pass
-       " self.globus_cli.wait()
+        """
+        self.globus_cli.wait()
         self.task = self.globus_cli.task
         self.status = self.globus_cli.status"
         self.status = "SUCCEEDED"
         self.ready = self.status == "SUCCEEDED"
+        """
 
     def write_file(self):
         if self.task:
