@@ -131,7 +131,7 @@ class Backup:
         try: self.ready = bool(eval(environ['TRANSFER_BACKUP_READY']))
         except: self.ready = False
         if not self.ready:
-            self.ready = self.globus and self.globus.ready
+            self.ready = True #self.globus and self.globus.ready
             if self.ready:
                 try:
                     self.logger.debug("Checking %(url)s." % self.server)
