@@ -70,12 +70,12 @@ class Globus_cli:
             requested_scopes = [ globus_sdk.TransferClient.scopes.all, "openid", "profile", "email" ]
             
             # Initialize the login flow with the defined scopes
-            query_params = {"session_required_single_domain": "utah.edu"}
-            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True, query_params=query_params)
+            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True)
+            authorize_url = self.auth_client.oauth2_get_authorize_url(session_required_single_domain="utah.edu")
             
             print("\n[Globus Auth] No cached tokens found. Initializing secure one-time authentication.")
-            print(f"Please log in here (requires Utah 2FA):\n{self.auth_client.oauth2_get_authorize_url()}\n")
-            
+            print(f"Please log in here (requires Utah 2FA):\n{authorize_url}\n")    
+                    
             authorization_code = input("Enter the resulting authorization code: ").strip()
             token_response = self.auth_client.oauth2_exchange_code_for_tokens(authorization_code)
             
