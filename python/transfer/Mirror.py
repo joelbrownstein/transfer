@@ -71,10 +71,15 @@ class Mirror:
 
     def append_item(self, label = None, recursive = None):
         if self.item is None: self.item = OrderedDict()
-        if not label: label = "item-%03d" % len(self.item)
+        if not label:
+            if self.mjd: label = "mjd-%r" % self.mjd
+            else: label = "item-%03d" % len(self.item)
         if self.base_dir and self.location:
             source = join(self.base_dir['source'], self.location)
             destination = join(self.base_dir['destination'], self.location)
+            if self.mjd:
+                source = join(source,self.mjd)
+                destination = join(destination,self.mjd)
             has_source = exists(source)
             if has_source:
                 if recursive is None: recursive = isdir(source)
