@@ -38,7 +38,9 @@ class Mirror:
         except: self.base_dir = None
 
     def set_dir(self):
-        self.dir = {'log': 'TRANSFER_MIRROR_LOG_DIR', 'task': 'TRANSFER_MIRROR_TASK_DIR', 'manifest': 'TRANSFER_MIRROR_MANIFEST_DIR'}
+        self.dir = {'log': 'TRANSFER_MIRROR_LOG_DIR'}
+        if self.save_manifest: self.dir['manifest'] = 'TRANSFER_MIRROR_MANIFEST_DIR'
+        if not self.manifest_only: self.dir['task'] = 'TRANSFER_MIRROR_TASK_DIR'
         for dir, env in self.dir.items():
             try: self.dir[dir] = environ[env]
             except: self.dir[dir] = None
@@ -52,7 +54,7 @@ class Mirror:
                 self.dir[dir] = None
 
     def set_file(self):
-        self.file = {'log': None, 'task': None, 'manifest': None}
+        self.file = {dir: None for dir in self.dir.keys()}
         for file in self.file.keys():
             if self.dir and self.dir[file] and self.identifier:
                 if getattr(self, 'mjd', None):
@@ -175,7 +177,7 @@ class Mirror:
         self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
         
     def execute_transfer(self):
-        if not self.save_manifest_only:
+        if not self.manifest_only:
             if self.item:
                 self.globus_cli.execute_transfer(items = self.item, options = self.options)
                 self.transfer = self.globus_cli.task
