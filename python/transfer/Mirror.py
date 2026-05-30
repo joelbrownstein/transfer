@@ -78,8 +78,9 @@ class Mirror:
             source = join(self.base_dir['source'], self.location)
             destination = join(self.base_dir['destination'], self.location)
             if self.mjd:
-                source = join(source,self.mjd)
-                destination = join(destination,self.mjd)
+                mjd = str(self.mjd)
+                source = join(source,mjd)
+                destination = join(destination,mjd)
             has_source = exists(source)
             if has_source:
                 if recursive is None: recursive = isdir(source)
