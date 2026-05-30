@@ -4,9 +4,6 @@ import globus_sdk
 from globus_sdk.token_storage import JSONTokenStorage
 from globus_sdk.scopes import GCSCollectionScopes, TransferScopes
 
-# Configure a module-level logger
-
-
 class Globus_cli:
     """
     A class to manage synchronous Globus data transfers between the 
@@ -46,7 +43,7 @@ class Globus_cli:
         
         if missing_variables:
             error_message = f"Missing required environment variables: {', '.join(missing_variables)}"
-            logger.critical(error_message)
+            self.logger.critical(error_message)
             self.ready = False
         else: self.ready = True
 
@@ -130,7 +127,7 @@ class Globus_cli:
             self.whoami['email'] = user_profile.get('email')
             self.whoami['id'] = user_profile.get('sub')
         except Exception as error:
-            logger.error(f"Failed to fetch user info: {str(error)}")
+            self.logger.error(f"Failed to fetch user info: {str(error)}")
             self.whoami = None
 
     def set_endpoint_info(self, endpoint = None):
@@ -147,21 +144,21 @@ class Globus_cli:
                     endpoint_information = self.client.get_endpoint(endpoint_id)
                     endpoint_available = not endpoint_information.get("non_functional")
                     if not endpoint_available:
-                        logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
+                        self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
         
                     test_path = endpoint_information.get("default_directory") or "/"
                     for self.endpoint_info in self.client.operation_ls(endpoint_id, path=test_path, limit=1): break
                     
-                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}).")
+                    self.logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}).")
                 else: self.endpoint_info = None
 
             except globus_sdk.TransferAPIError as error:
                 if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
-                    logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
-                else: logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
+                    self.logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
+                else: self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
                 self.endpoint_info = None
             except Exception as error:
-                logger.error(f"Unexpected error when checking health: {str(error)}")
+                self.logger.error(f"Unexpected error when checking health: {str(error)}")
                 self.endpoint_info = None
         else: self.endpoint_info = None
         
@@ -195,33 +192,33 @@ class Globus_cli:
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
                 if self.verbose: print("Add item for label=%(label)r with source=%(source)r and destination=%r(destination)r" % item)
             try:
-                logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
+                self.logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
                 submit_result = self.client.submit_transfer(transfer_data)
                 self.task_id = submit_result["task_id"]
-                logger.info(f"Transfer submitted successfully. Task ID: {task_id}")
+                self.logger.info(f"Transfer submitted successfully. Task ID: {task_id}")
             except globus_sdk.TransferAPIError as error:
-                logger.error(f"Globus Transfer API Error: {error.http_status} - {error.code} - {error.message}")
+                self.logger.error(f"Globus Transfer API Error: {error.http_status} - {error.code} - {error.message}")
                 self.task_id = None
             except Exception as error:
-                logger.error(f"Unexpected error during transfer lifecycle: {str(error)}")
+                self.logger.error(f"Unexpected error during transfer lifecycle: {str(error)}")
                 self.task_id = None
         else: self.task_id = None
                
     def wait(self, timeout=86400, polling_interval=10):
         if self.task_id:
-            logger.info("Waiting for transfer execution...")
+            self.logger.info("Waiting for transfer execution...")
             self.client.task_wait(self.task_id, timeout=timeout, polling_interval=polling_interval)
             
             self.task = self.client.get_task(self.task_id)
             self.status = self.task["status"]
             
             if self.status == "SUCCEEDED":
-                logger.info(f"SUCCESS: Transfer task {task_id} completed smoothly.")
+                self.logger.info(f"SUCCESS: Transfer task {task_id} completed smoothly.")
             elif self.status == "FAILED":
                 error_message = task.get("fatal_error", "Unknown fatal error occurred.")
-                logger.error(f"FAILURE: Transfer task {task_id} failed. Reason: {error_message}")
+                self.logger.error(f"FAILURE: Transfer task {task_id} failed. Reason: {error_message}")
             else:
-                logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status: {status}")
+                self.logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status: {status}")
         else: self.status = None
 
                     
