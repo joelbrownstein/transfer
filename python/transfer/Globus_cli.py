@@ -134,27 +134,27 @@ class Globus_cli:
                 if endpoint_id:
                     endpoint_information = self.client.get_endpoint(endpoint_id)
                     if endpoint_information.get("non_functional") is True:
-                        logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is marked NON-FUNCTIONAL.")
+                        logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
                         endpoint_available = False
                         
                     if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
                         if not endpoint_information.get("gcp_connected", True):
-                            logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal {label} ({endpoint_id}) is offline.")
+                            logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal ({endpoint_id}) is offline.")
                             endpoint_available = False
 
                     test_path = endpoint_information.get("default_directory") or "/"
                     self.client.operation_ls(endpoint_id, path=test_path, limit=1)
                     
-                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}).")
+                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}).")
                     endpoint_available = True
                 else: endpoint_available = None
 
             except globus_sdk.TransferAPIError as error:
                 if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
-                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}) [Status: {error.code}].")
+                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
                     endpoint_available = True
                 
-                logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
+                logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
                 endpoint_available = False
             except Exception as error:
                 logger.error(f"Unexpected error when checking health: {str(error)}")
