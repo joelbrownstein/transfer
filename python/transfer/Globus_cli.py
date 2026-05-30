@@ -58,10 +58,10 @@ class Globus_cli:
         self.token['file_path'] = os.path.expanduser("~/.globus/cli/globus-auth.json")
         self.token['file_exists'] = os.path.exists(self.token['file_path'])
         
-        self.token['storage'] = JSONTokenStorage(self.token['file_path']) if self.token['file_exists'] else None
+        self.token['storage'] = JSONTokenStorage(self.token['file_path'])
 
         # Attempt to load existing credentials from disk
-        if self.token['storage']:
+        if self.token['file_exists']:
             transfer_token_data = self.token['storage'].get_token_data("transfer.api.globus.org")
             auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
         else: transfer_token_data = auth_token_data = None 
