@@ -9,8 +9,6 @@ class Mirror:
     sync = ['exists', 'size', 'mtime', 'checksum']
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
-manifest-53450.dr8_spectro_data.json
-transfer.dr8_spectro_data-manifest.53450.log
     
     def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
