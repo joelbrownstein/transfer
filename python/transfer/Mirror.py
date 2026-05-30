@@ -1,8 +1,8 @@
 from transfer import Globus_cli, Logging
-from os import chdir, makedirs, environ, listdir
-from os.path import join, exists, basename, isdir
+from os import chdir, makedirs, environ, listdir, walk, utime
+from os.path import join, exists, basename, isdir, relpath, getmtime
 from collections import OrderedDict
-from json import dumps
+from json import load, dump, dumps
 
 class Mirror:
 
@@ -10,7 +10,7 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, mjd=None, recursive_symlinks = None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, mjd=None, recursive_symlinks=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
@@ -89,6 +89,84 @@ class Mirror:
                 self.item[label] = item
                 self.error_message("Appending item=%r [label=%r]" % (item, label))
             else: self.error_message("Nonexistent source path=%r" % source)
+
+    def set_manifest(self):
+        """
+        PRE-FLIGHT (runs on source): Scans the local directory tree, calculates relative
+        paths and their Mtime, dumps a JSON file to a designated manifest directory,
+        and appends it to the Globus transfer list to sync alongside the data.
+        """
+        if not self.base_dir or not self.location or self.item is None: return
+        
+        loc = self.location
+        if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
+            loc = join(loc, str(self.mjd))
+            
+        source_dir = join(self.base_dir['source'], loc)
+        if not exists(source_dir): return
+        
+        self.info_message("Pre-flight: Indexing directory timestamps into JSON manifest...")
+        self.manifest = {'source': None, 'destination': None, 'locations': {}}
+        for root, dirs, files in walk(source_dir):
+            location = relpath(root, source_dir)
+            if location == '.': location = ''
+            self.manifest['locations'][location] = getmtime(root)
+            
+        # Write out to the designated environmental folder (fallback to log dir)
+        local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
+        if local_manifest_dir and not exists(local_manifest_dir): makedirs(local_manifest_dir)
+        
+        label = "manifest-%r" % self.mjd if self.mjd else "manifest"
+        filename = "%s.%s.json" % (label, self.identifier)
+        self.manifest['source'] = join(local_manifest_dir, filename)
+        with open(self.manifest['source'], 'w') as file:
+            dump(self.manifest['locations'], file, indent=4)
+        self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
+        
+        # Append to Globus payload
+        dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
+        self.manifest['destination'] = join(dest_manifest_dir, filename)
+        
+        self.item[label] = {
+            'source': self.manifest['source'],
+            'destination': self.manifest['destination'],
+            'recursive': False
+        }
+
+    def apply_timestamp_manifest(self):
+        """
+        POST-FLIGHT (JHU side): Reads the transferred JSON manifest from the 
+        environmental directory and applies the exact timestamps via os.utime.
+        """
+        local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
+        manifest_file = join(local_manifest_dir, "manifest.%s.json" % self.identifier)
+        
+        if not exists(manifest_file):
+            self.error_message("Timestamp sync aborted. Manifest not found: %s" % manifest_file)
+            return
+            
+        self.info_message("Restoring directory timestamps from manifest: %s" % manifest_file)
+        with open(manifest_file, 'r') as f:
+            manifest = load(f)
+            
+        loc = self.location
+        if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
+            loc = join(loc, str(self.mjd))
+            
+        dest_dir = join(self.base_dir['destination'], loc)
+        
+        success_count, error_count = 0, 0
+        for rel_p, mtime in manifest.items():
+            target_dir = join(dest_dir, rel_p) if rel_p else dest_dir
+            if exists(target_dir) and isdir(target_dir):
+                try:
+                    utime(target_dir, (mtime, mtime))
+                    success_count += 1
+                except Exception as e:
+                    self.error_message("Failed to utime %s: %s" % (target_dir, e))
+                    error_count += 1
+        
+        self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
         
     def execute_transfer(self):
         if self.item:
@@ -133,19 +211,16 @@ class Mirror:
         if self.globus_cli:
             self.globus_cli.wait()
             self.task = self.globus_cli.task
-            self.transfer = self.globus_cli.task  # Keep synchronized for the file writer
+            self.transfer = self.globus_cli.task  
             self.status = self.globus_cli.status
             self.ready = self.status == "SUCCEEDED"
 
     def write_file(self):
         if self.transfer:
-            import json
             self.info_message(message = "Create %s" % self.file)
-            
-            # Extract and deserialize the document mapping safely from the Globus response object
             with open(self.file, 'w') as file:
                 task_data = getattr(self.transfer, "data", self.transfer)
-                file.write(json.dumps(task_data, indent=4))
+                file.write(dumps(task_data, indent=4))
                 
     def done(self):
         self.info_message(message = "Done!")

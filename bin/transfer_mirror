@@ -8,6 +8,7 @@ def transfer_mirror(options = None):
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
     if mirror.ready:
         mirror.append_item()
+        mirror.set_timestamp_manifest()
         mirror.execute_transfer()
         if mirror.transfer:
             mirror.wait()
