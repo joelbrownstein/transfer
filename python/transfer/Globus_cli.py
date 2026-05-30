@@ -167,6 +167,7 @@ class Globus_cli:
         Validates both endpoints, dynamically constructs paths, 
         and executes the transfer securely, blocking until completion.
         """
+        
         if items and options:
             label = options['label'] if 'label' in options else "sdss-transfer"
             preserve_mtime = options['preserve_mtime'] if 'preserve_mtime' in options else None
@@ -176,6 +177,7 @@ class Globus_cli:
             delete = options['delete'] if 'delete' in options else None
             fail_on_quota_errors = options['fail_on_quota_errors'] if 'fail_on_quota_errors' in options else None
         
+            if self.verbose: print("GLOBUS> Executing transfer mode %(mode)s [%r items]" % (options, items))
             # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
             transfer_data = globus_sdk.TransferData(
                 source_endpoint=self.source_endpoint, 
