@@ -1,6 +1,9 @@
 import os
+from sys import stdout
+from time import time, sleep
 import logging
 import globus_sdk
+
 from globus_sdk.token_storage import JSONTokenStorage
 from globus_sdk.scopes import GCSCollectionScopes, TransferScopes
 
@@ -219,7 +222,7 @@ class Globus_cli:
                 self.transfer = self.task_id = self.task = None
         else: self.transfer = self.task_id = self.task = None
                
-    def wait(self, timeout=86400, polling_interval=10):
+    def wait0(self, timeout=86400, polling_interval=10):
         if self.task_id:
             self.logger.info("Waiting for transfer execution...")
             self.client.task_wait(self.task_id, timeout=timeout, polling_interval=polling_interval)
@@ -237,3 +240,43 @@ class Globus_cli:
 
                     
 
+
+    def wait(self, timeout=86400, polling_interval=5):
+        if self.task_id:
+            self.logger.info("Waiting for transfer execution...")
+            start_time = time()
+            
+            while True:
+                self.task = self.client.get_task(self.task_id)
+                self.status = self.task["status"]
+                
+                if self.verbose:
+                    bytes_mb = self.task.get("bytes_transferred", 0) / (1024 * 1024)
+                    files_done = self.task.get("files_transferred", 0)
+                    files_total = self.task.get("files", 0)
+                    dirs_done = self.task.get("directories", 0)
+                    total_str = f"{files_total}" if files_total > 0 else "?"
+                    stdout.write(f"\rGLOBUS> Progress: {files_done}/{total_str} files | {dirs_done} dirs | {bytes_mb:.2f} MB | Status: {self.status}")
+                    stdout.flush()
+
+                if self.status in ["SUCCEEDED", "FAILED", "INACTIVE"]:
+                    if self.verbose: print()
+                    break
+                    
+                if time() - start_time > timeout:
+                    if self.verbose: print()
+                    self.logger.error("Wait timeout exceeded.")
+                    break
+                    
+                sleep(polling_interval)
+                
+            # Log final results to the logger
+            if self.status == "SUCCEEDED":
+                self.logger.info(f"SUCCESS: Transfer task {self.task_id} completed smoothly.")
+            elif self.status == "FAILED":
+                error_message = self.task.get("fatal_error", "Unknown fatal error occurred.")
+                self.logger.error(f"FAILURE: Transfer task {self.task_id} failed. Reason={error_message}")
+            else:
+                self.logger.warning(f"WARNING: Transfer task {self.task_id} finished with unexpected status={self.status}")
+        else: 
+            self.status = None
