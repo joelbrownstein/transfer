@@ -114,36 +114,21 @@ class Mirror:
         else: self.active_user = None
 
     def wait(self):
-        pass
-        """
-        self.globus_cli.wait()
-        self.task = self.globus_cli.task
-        self.status = self.globus_cli.status"
-        self.status = "SUCCEEDED"
-        self.ready = self.status == "SUCCEEDED"
-        """
-
-def wait(self):
-        # Remove the 'pass' and actually call the CLI wait loop
         if self.globus_cli:
             self.globus_cli.wait()
             self.task = self.globus_cli.task
-            self.transfer = self.globus_cli.task # Keep synchronized with final completion state
+            self.transfer = self.globus_cli.task
             self.status = self.globus_cli.status
             self.ready = self.status == "SUCCEEDED"
+        else:
+            self.status = "UNREADY"
+            self.ready = False
 
     def write_file(self):
         if self.transfer:
             self.info_message(message = "Create %s" % self.file)
             with open(self.file, 'w') as file: file.write(dumps(self.transfer.data, indent=4))
-                
-    def write_file(self):
-        if self.transfer:
-            self.info_message(message = "Create %s" % self.file)
-            file = open(self.file,'w')
-            file.write(self.transfer)
-            file.close()
-                
+
     def done(self):
         self.info_message(message = "Done!")
         
