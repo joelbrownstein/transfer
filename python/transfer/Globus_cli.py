@@ -130,21 +130,24 @@ class Globus_cli:
         
         if endpoint:
             try:
-                endpoint_information = self.client.get_endpoint(endpoint_id)
-                if endpoint_information.get("non_functional") is True:
-                    logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is marked NON-FUNCTIONAL.")
-                    endpoint_available = False
-                    
-                if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
-                    if not endpoint_information.get("gcp_connected", True):
-                        logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal {label} ({endpoint_id}) is offline.")
+                endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint of endpoint == "destination" else None
+                if endpoint_id:
+                    endpoint_information = self.client.get_endpoint(endpoint_id)
+                    if endpoint_information.get("non_functional") is True:
+                        logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is marked NON-FUNCTIONAL.")
                         endpoint_available = False
+                        
+                    if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
+                        if not endpoint_information.get("gcp_connected", True):
+                            logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal {label} ({endpoint_id}) is offline.")
+                            endpoint_available = False
 
-                test_path = endpoint_information.get("default_directory") or "/"
-                self.client.operation_ls(endpoint_id, path=test_path, limit=1)
-                
-                logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}).")
-                endpoint_available = True
+                    test_path = endpoint_information.get("default_directory") or "/"
+                    self.client.operation_ls(endpoint_id, path=test_path, limit=1)
+                    
+                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}).")
+                    endpoint_available = True
+                else: endpoint_available = None
 
             except globus_sdk.TransferAPIError as error:
                 if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
@@ -156,7 +159,7 @@ class Globus_cli:
             except Exception as error:
                 logger.error(f"Unexpected error when checking health for {label}: {str(error)}")
                 endpoint_available = False
-        else: endpoint_available = False
+        else: endpoint_available = None
         
         return endpoint_available
 
