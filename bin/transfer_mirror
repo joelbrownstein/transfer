@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 from transfer import Mirror, Argument
 
+locations = ['dr8/sdss/spectro/data/55025']
 arg = Argument('transfer_mirror')
 mirror = Mirror(options=arg.options)
 if mirror.ready:
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
-    mirror.set_item()
+    for mirror.location in locations: mirror.append_item()
     mirror.execute_transfer()
     mirror.wait()
-    mirror.write_logfile()
+    mirror.write_file()
     mirror.done()
 else: print("TRANSFER> Logging not ready!")

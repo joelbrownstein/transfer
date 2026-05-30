@@ -1,11 +1,6 @@
 from transfer import Globus_cli, Logging
 from os import chdir, makedirs, environ, listdir
 from os.path import join, exists, basename, isdir
-from json import loads
-from re import search
-from urllib.request import urlopen
-from time import sleep
-import tarfile
 from collections import OrderedDict
 
 class Mirror:
@@ -20,12 +15,21 @@ class Mirror:
         self.verbose = options.verbose if options else verbose
         self.logger = logger
         self.item = None
+        self.set_base_dir()
         self.set_dir()
         self.set_user()
         self.set_logger()
         self.set_globus_cli()
         self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
     
+    def set_base_dir(self):
+        self.base_dir = {}
+        try:
+            self.base_dir['source'] = environ['SAS_BASE_DIR']
+            try: self.base_dir['destination'] = environ['SAM_BASE_DIR']
+            except: self.base_dir = None
+        except: self.base_dir = None
+
     def set_dir(self):
         try: self.dir = environ['SAM_LOGS_DIR']
         except: self.dir = None
@@ -54,28 +58,24 @@ class Mirror:
         try: self.user = environ['TRANSFER_GLOBUS_USER']
         except Exception as e: self.user = None
 
-    def set_item(self):
-        base_dir = self.sas_endpoint['base_dir'] if self.sas_endpoint else None
-        if base_dir and self.location:
-            path = join(base_dir, self.location)
-            if exists(path):
-                self.append_item(recursive = isdir(path))
+    def append_item(self, label = None, recursive = None):
+        if self.item is None: self.item = OrderedDict()
+        if not label: label = "item-%03d" % len(self.item)
+        if self.base_dir and self.location:
+            source = join(self.base_dir['source'], self.location)
+            destination = join(self.base_dir['destination'], self.location)
+            has_source = exists(source)
+            if has_source and recursive is None: recursive = isdir(source)
+            item = {'source':source, 'destination':destination, 'recursive':recursive} if has_source else None
+            self.item[label] = item
             else: self.error_message("Nonexistent path=%r" % path)
-        else: self.item = None
         
-    def append_item(self, recursive=False):
-        if self.location and self.item is not None:
-            item = {'source':self.location, 'destination':self.location, 'recursive':recursive}
-            self.item.append(item)
-            self.info_message(message = "Item %r" % self.item)
-        else: self.error_message("Cannot append no location to item")
-
     def execute_transfer(self):
         if self.item:
             self.globus_cli.execute_transfer(items = self.item, options = self.options)
         else: self.info_message(message = "no items to transfer")
 
-    def set_options(self,label=None,sync=None,preserve_mtime=False,fail_on_quota_errors=False,verify=False,delete=False,encrypt=False):
+    def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
         self.options['label'] = label if label else self.label
         self.options['sync'] = sync if sync in self.sync else None
