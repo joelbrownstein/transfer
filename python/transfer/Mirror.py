@@ -12,7 +12,7 @@ class Mirror:
     
     def __init__(self, options=None, identifier=None, location=None, mjd=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
-        self.mjd = options.mjd if options and hasattr(options, 'mjd')) else mjd
+        self.mjd = options.mjd if options else mjd
         self.location = options.location if options else location
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
