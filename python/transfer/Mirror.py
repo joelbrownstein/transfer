@@ -10,11 +10,12 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, mjd=None, recursive_symlinks=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
-        self.recursive_symlinks = options.recursive_symlinks if options else recursive_symlinks
+        self.save_manifest = options.save_manifest if options else save_manifest
+        self.manifest_only = options.manifest_only if options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.logger = logger
@@ -99,42 +100,44 @@ class Mirror:
         paths and their Mtime, dumps a JSON file to a designated manifest directory,
         and appends it to the Globus transfer list to sync alongside the data.
         """
-        if not self.base_dir or not self.location or self.item is None: return
-        
-        loc = self.location
-        if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
-            loc = join(loc, str(self.mjd))
+        if self.save_manifest:
+            if not self.base_dir or not self.location or self.item is None: return
             
-        source_dir = join(self.base_dir['source'], loc)
-        if not exists(source_dir): return
-        
-        self.info_message("Pre-flight: Indexing directory timestamps into JSON manifest...")
-        self.manifest = {'source': None, 'destination': None, 'locations': {}}
-        for root, dirs, files in walk(source_dir):
-            location = relpath(root, source_dir)
-            if location == '.': location = ''
-            self.manifest['locations'][location] = getmtime(root)
+            loc = self.location
+            if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
+                loc = join(loc, str(self.mjd))
+                
+            source_dir = join(self.base_dir['source'], loc)
+            if not exists(source_dir): return
             
-        # Write out to the designated environmental folder (fallback to log dir)
-        local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
-        if local_manifest_dir and not exists(local_manifest_dir): makedirs(local_manifest_dir)
-        
-        label = "manifest-%r" % self.mjd if self.mjd else "manifest"
-        filename = "%s.%s.json" % (label, self.identifier)
-        self.manifest['source'] = join(local_manifest_dir, filename)
-        with open(self.manifest['source'], 'w') as file:
-            dump(self.manifest['locations'], file, indent=4)
-        self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
-        
-        # Append to Globus payload
-        dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
-        self.manifest['destination'] = join(dest_manifest_dir, filename)
-        
-        self.item[label] = {
-            'source': self.manifest['source'],
-            'destination': self.manifest['destination'],
-            'recursive': False
-        }
+            self.info_message("Pre-flight: Indexing directory timestamps into JSON manifest...")
+            self.manifest = {'source': None, 'destination': None, 'locations': {}}
+            for root, dirs, files in walk(source_dir):
+                location = relpath(root, source_dir)
+                if location == '.': location = ''
+                self.manifest['locations'][location] = getmtime(root)
+                
+            # Write out to the designated environmental folder (fallback to log dir)
+            local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
+            if local_manifest_dir and not exists(local_manifest_dir): makedirs(local_manifest_dir)
+            
+            label = "manifest-%r" % self.mjd if self.mjd else "manifest"
+            filename = "%s.%s.json" % (label, self.identifier)
+            self.manifest['source'] = join(local_manifest_dir, filename)
+            with open(self.manifest['source'], 'w') as file:
+                dump(self.manifest['locations'], file, indent=4)
+            self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
+            
+            # Append to Globus payload
+            dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
+            self.manifest['destination'] = join(dest_manifest_dir, filename)
+            
+            self.item[label] = {
+                'source': self.manifest['source'],
+                'destination': self.manifest['destination'],
+                'recursive': False
+            }
+        else: self.manifest = None
 
     def apply_timestamp_manifest(self):
         """
@@ -172,14 +175,18 @@ class Mirror:
         self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
         
     def execute_transfer(self):
-        if self.item:
-            self.globus_cli.execute_transfer(items = self.item, options = self.options)
-            self.transfer = self.globus_cli.task
+        if not self.save_manifest_only:
+            if self.item:
+                self.globus_cli.execute_transfer(items = self.item, options = self.options)
+                self.transfer = self.globus_cli.task
+            else:
+                self.transfer = None
+                self.info_message(message = "no items to transfer")
         else:
             self.transfer = None
-            self.info_message(message = "no items to transfer")
+            self.info_message(message = "skipping transfer (save manifest only)")
 
-    def set_options(self, label=None, sync=None, preserve_mtime=False, recursive_symlinks=None, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
+    def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
         self.options['label'] = label if label else self.identifier
         self.options['sync'] = sync if sync in self.sync else None
@@ -187,13 +194,11 @@ class Mirror:
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
         self.options['verify'] = verify
         self.options['preserve_mtime'] = preserve_mtime
-        self.options['recursive_symlinks'] = recursive_symlinks if recursive_symlinks else "keep"
         self.options['delete'] = delete
         self.options['encrypt'] = encrypt
         mode = []
         if self.options['sync']: mode.append("--sync-level %(sync)s")
         if self.options['preserve_mtime']: mode.append("--preserve-mtime")
-        if self.options['recursive_symlinks']: mode.append("--recursive_symlinks=%(recursive_symlinks)s")
         if self.options['encrypt']: mode.append("--encrypt")
         if self.options['fail_on_quota_errors']: mode.append("--fail-on-quota-errors")
         if self.options['verify']: mode.append("--verify-checksum")
