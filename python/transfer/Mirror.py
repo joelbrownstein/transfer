@@ -65,10 +65,12 @@ class Mirror:
             source = join(self.base_dir['source'], self.location)
             destination = join(self.base_dir['destination'], self.location)
             has_source = exists(source)
-            if has_source and recursive is None: recursive = isdir(source)
-            item = {'source':source, 'destination':destination, 'recursive':recursive} if has_source else None
-            self.item[label] = item
-            else: self.error_message("Nonexistent path=%r" % path)
+            if has_source:
+                if recursive is None: recursive = isdir(source)
+                item = {'source':source, 'destination':destination, 'recursive':recursive} if has_source else None
+                self.item[label] = item
+                self.error_message("Appending item=%r [label=%r]" % (item, label))
+            else: self.error_message("Nonexistent source path=%r" % source)
         
     def execute_transfer(self):
         if self.item:
