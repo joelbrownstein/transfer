@@ -157,7 +157,7 @@ class Globus_cli:
                 logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
                 endpoint_available = False
             except Exception as error:
-                logger.error(f"Unexpected error when checking health for {label}: {str(error)}")
+                logger.error(f"Unexpected error when checking health: {str(error)}")
                 endpoint_available = False
         else: endpoint_available = None
         
