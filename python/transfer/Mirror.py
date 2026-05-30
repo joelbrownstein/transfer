@@ -10,10 +10,11 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, mjd=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, mjd=None, recursive_symlinks = None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
+        self.recursive_symlinks = options.recursive_symlinks if options else recursive_symlinks
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.logger = logger

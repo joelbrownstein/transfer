@@ -175,6 +175,7 @@ class Globus_cli:
         if items and options:
             label = options['label'] if 'label' in options else "sdss-transfer"
             preserve_mtime = options['preserve_mtime'] if 'preserve_mtime' in options else None
+            recursive_symlinks = options['recursive_symlinks'] if 'recursive_symlinks' in options else "ignore"
             sync = options['sync'] if 'sync' in options else None
             encrypt = options['encrypt'] if 'encrypt' in options else None
             verify = options['verify'] if 'verify' in options else None
@@ -188,6 +189,7 @@ class Globus_cli:
                 destination_endpoint=self.destination_endpoint, 
                 label=label, 
                 preserve_timestamp=preserve_mtime,
+                recursive_symlinks=recursive_symlinks,
                 sync_level=sync,
                 encrypt_data=encrypt,
                 verify_checksum=verify,

@@ -50,6 +50,7 @@ def transfer_mirror():
     parser.add_argument("-l", "--location", help="location",metavar="LOCATION")
     parser.add_argument("-m", "--mjd", help="Modified Julian Date (MJD)", type=int, metavar="MJD")
     parser.add_argument("-M", '--mjdlist', nargs='+', type=int, metavar="MJDLIST", help="Batch process ranges 'start end' or explicit MJDs list")
+    parser.add_argument("-s" "--recursive_symlinks",  help="symlink treatment", choices=['keep', 'ignore', 'copy'], default='keep')
     parser.add_argument("-d", "--dryrun", help="dryrun",action="store_true")
     parser.add_argument("-v", "--verbose", help="verbose",action="store_true")
     args = parser.parse_args()
