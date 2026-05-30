@@ -201,8 +201,8 @@ class Globus_cli:
                 message = f"Submitting transfer=%r for label=%r" % (transfer_data, label)
                 self.logger.info(message)
                 if self.verbose: print("GLOBUS> %s" % message)
-                submit_result = transfer_client.submit_transfer(transfer_data)
-                self.task_id = submit_result["task_id"]
+                self.transfer = self.client.submit_transfer(transfer_data)
+                self.task_id = self.transfer["task_id"]
                 self.task = self.client.get_task(self.task_id)
                 message = f"Transfer submitted successfully. Task ID={task_id} for task {task}"
                 if self.verbose: print("GLOBUS> %s" % message)
@@ -211,13 +211,13 @@ class Globus_cli:
                 message = "Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
                 if self.verbose: print("GLOBUS> %s" % message)
                 self.logger.error(message)
-                self.task_id = self.task = None
+                self.transfer = self.task_id = self.task = None
             except Exception as error:
                 message = f"Unexpected error during transfer lifecycle={str(error)}"
                 if self.verbose: print("GLOBUS> %s" % message)
                 self.logger.error(message)
-                self.task_id = self.task = None
-        else: self.task_id = self.task = None
+                self.transfer = self.task_id = self.task = None
+        else: self.transfer = self.task_id = self.task = None
                
     def wait(self, timeout=86400, polling_interval=10):
         if self.task_id:
