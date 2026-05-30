@@ -63,9 +63,11 @@ class Mirror:
                     self.file[file] = join(self.dir[file], "mirror.%s.json" % self.identifier)
 
     def set_globus_cli(self):
-        self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
-        self.ready = self.globus_cli.ready
-        self.set_active_user()
+        if not self.manifest_only:
+            self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
+            self.ready = self.globus_cli.ready
+            self.set_active_user()
+        else: self.globus_cli = None
         
     def set_logger(self):
         print("LOGGING> needed=%r" % True if not self.logger else False)
