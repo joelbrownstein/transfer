@@ -28,7 +28,7 @@ class Globus_cli:
             self.set_endpoint()
         else: self.token = self.client = self.endpoint = None
         
-    def set_endpoint_info(self):
+    def set_endpoint(self):
         self.endpoint = {}
         for endpoint in self.endpoints: 
             self.set_endpoint_info(endpoint = endpoint)
