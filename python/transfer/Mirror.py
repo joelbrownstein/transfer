@@ -37,25 +37,27 @@ class Mirror:
         except: self.base_dir = None
 
     def set_dir(self):
-        try: self.dir = environ['SAM_LOGS_DIR']
-        except: self.dir = None
-        if self.dir and exists(self.dir):
-            if self.location:
-                self.dir = join(self.dir, self.location)
-                if not exists(self.dir): makedirs(self.dir)
-            self.info_message(message = "logging to %r" % self.dir)
-        else:
-            self.info_message(message = "nonexistent directory %r" % self.dir)
-            self.dir = None
+        self.dir = {'log': 'TRANSFER_MIRROR_LOG_DIR', 'task': 'TRANSFER_MIRROR_TASK_DIR', 'manifest': 'TRANSFER_MIRROR_MANIFEST_DIR'}
+        for dir, env in self.dir.items():
+            try: self.dir[dir] = environ[env]
+            except: self.dir[dir] = None
+            if self.dir and self.dir['dir] and exists(self.dir[dir]):
+                if self.location:
+                    self.dir[dir] = join(self.dir[dir], self.location)
+                    if not exists(self.dir[dir]): makedirs(self.dir[dir])
+                self.info_message(message = "dir=%r to %r" % (dir,self.dir[dir]))
+            else:
+                self.info_message(message = "nonexistent directory %r" % self.dir[dir])
+                self.dir[dir] = None
 
     def set_file(self):
-        if self.dir and self.identifier:
+        self.file = {'log': None, 'task': None, 'manifest': None}
+        for file in self.file.keys():
+        if self.dir and self.dir[file] and self.identifier:
             if getattr(self, 'mjd', None):
-                self.file = join(self.dir, "mirror.%s.%d.json" % (self.identifier, self.mjd))
+                self.file[file] = join(self.dir[file], "mirror.%s.%d.json" % (self.identifier, self.mjd))
             else:
-                self.file = join(self.dir, "mirror.%s.json" % self.identifier)
-        else:
-            self.file = None
+                self.file[file] = join(self.dir[file], "mirror.%s.json" % self.identifier)
 
     def set_globus_cli(self):
         self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
@@ -63,8 +65,9 @@ class Mirror:
         self.set_active_user()
         
     def set_logger(self):
-        self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir, verbose = self.verbose)
-        self.logger = self.logging.logger
+        if not self.logger:
+            self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], verbose = self.verbose)
+            self.logger = self.logging.logger
         
     def set_user(self):
         try: self.user = environ['TRANSFER_GLOBUS_USER']
@@ -215,10 +218,10 @@ class Mirror:
             self.status = self.globus_cli.status
             self.ready = self.status == "SUCCEEDED"
 
-    def write_file(self):
+    def write_task_file(self):
         if self.transfer:
-            self.info_message(message = "Create %s" % self.file)
-            with open(self.file, 'w') as file:
+            self.info_message(message = "Create %(task)s" % self.file)
+            with open(self.file['task'], 'w') as file:
                 task_data = getattr(self.transfer, "data", self.transfer)
                 file.write(dumps(task_data, indent=4))
                 
