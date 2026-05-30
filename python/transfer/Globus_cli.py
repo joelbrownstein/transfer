@@ -2,7 +2,7 @@ import os
 import logging
 import globus_sdk
 from globus_sdk.token_storage import JSONTokenStorage
-from globus_sdk.scopes import GCSCollectionScopeBuilder, TransferScopes
+from globus_sdk.scopes import GCSCollectionScopes, TransferScopes
 
 # Configure a module-level logger
 logger = logging.getLogger("sdss_transfer.globus")
@@ -68,11 +68,9 @@ class Globus_cli:
         else: transfer_token_data = auth_token_data = None 
 
         if not transfer_token_data or not auth_token_data:
-            source_data_access = GCSCollectionScopeBuilder(self.source_endpoint).data_access
-            dest_data_access = GCSCollectionScopeBuilder(self.destination_endpoint).data_access
-            transfer_scope = TransferScopes.make_mutable("all")
-            transfer_scope.add_dependency(source_data_access)
-            transfer_scope.add_dependency(dest_data_access)
+            source_scopes = GCSCollectionScopes(self.source_endpoint)
+            dest_scopes = GCSCollectionScopes(self.destination_endpoint)
+            transfer_scope = TransferScopes.all.with_dependencies([source_scopes.data_access, dest_scopes.data_access])
             requested_scopes = [ transfer_scope, "openid", "profile", "email" ]
             
             # Initialize the login flow with the defined scopes
