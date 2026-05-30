@@ -39,7 +39,7 @@ class Mirror:
             self.dir = None
 
     def set_file(self):
-        self.file = join(self.dir, "mirror.%s.json" % self.label
+        self.file = join(self.dir, "mirror.%s.json" % self.label) if self.dir and self.label else None
 
     def set_globus_cli(self):
         self.globus_cli = Globus_cli()
