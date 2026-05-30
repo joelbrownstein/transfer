@@ -46,6 +46,7 @@ def transfer_github():
 
 def transfer_mirror():
     parser = ArgumentParser()
+    parser.add_argument("-i", "--identifier", help="identifier",metavar="IDENTIFIER")
     parser.add_argument("-l", "--location", help="location",metavar="LOCATION")
     parser.add_argument("-d", "--dryrun", help="dryrun",action="store_true")
     parser.add_argument("-v", "--verbose", help="verbose",action="store_true")
