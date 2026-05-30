@@ -67,7 +67,9 @@ class Mirror:
             self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
             self.ready = self.globus_cli.ready
             self.set_active_user()
-        else: self.globus_cli = None
+        else:
+            self.globus_cli = None
+            self.ready = True
         
     def set_logger(self):
         print("LOGGING> needed=%r" % True if not self.logger else False)
