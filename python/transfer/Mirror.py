@@ -9,7 +9,8 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, location=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, dryrun=None, verbose=None, logger = None):
+        self.identifier = options.identifier if options else identifier
         self.location = options.location if options else location
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
@@ -17,6 +18,7 @@ class Mirror:
         self.item = None
         self.set_base_dir()
         self.set_dir()
+        self.set_file()
         self.set_user()
         self.set_logger()
         self.set_globus_cli()
@@ -44,7 +46,7 @@ class Mirror:
             self.dir = None
 
     def set_file(self):
-        self.file = join(self.dir, "mirror.%s.json" % self.label) if self.dir and self.label else None
+        self.file = join(self.dir, "mirror.%s.json" % self.identifier) if self.dir and self.identifier else None
 
     def set_globus_cli(self):
         self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
@@ -52,7 +54,7 @@ class Mirror:
         self.set_active_user()
         
     def set_logger(self):
-        self.logging = Logging(staging = self.staging, observatory = self.label, dir = self.dir, verbose = self.verbose)
+        self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir, verbose = self.verbose)
         self.logger = self.logging.logger
         
     def set_user(self):
@@ -83,7 +85,7 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        self.options['label'] = label if label else self.label
+        self.options['label'] = label if label else self.identifier
         self.options['sync'] = sync if sync in self.sync else None
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
