@@ -93,7 +93,6 @@ class Mirror:
                 if recursive is None: recursive = isdir(source)
                 item = {'source':source, 'destination':destination, 'recursive':recursive} if has_source else None
                 self.item[label] = item
-                self.error_message("Appending item=%r [label=%r]" % (item, label))
             else: self.error_message("Nonexistent source path=%r" % source)
 
     def set_manifest(self):
