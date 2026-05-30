@@ -12,30 +12,42 @@ class Globus_cli:
     SDSS Admin Collection and the JHU IDIES endpoint, featuring automated 
     token caching to bypass repeated Utah 2FA logins. Fully optimized for SDK v4.
     """
+    
+    endpoints = ['source', 'destination']
+
     def __init__(self):
-        # 1. Load configuration from system environment variables
         self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
         self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
         self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
-        self.product_directory = "/uufs/chpc.utah.edu/common/home/sdssadmin/test"
+        self.ready()
+        if self.ready:
+            self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
+            self.set_token()
+            self.set_client()
+            self.set_endpoint()
+        else: self.token = self.client = self.endpoint = None
         
-        self._validate_environment()
-        self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
-        self.set_token()
+    def set_endpoint(self):
+        self.endpoint = {endpoint: self.get_endpoint_available(endpoint = endpoint) for endpoint in self.endpoints}
+        self.ready = all(self.endpoint.values())
 
-    def _validate_environment(self):
+    def set_ready(self):
         """Internal helper to ensure all necessary environment variables exist."""
         missing_variables = []
         if not self.client_id: missing_variables.append("GLOBUS_CLIENT_ID")
         if not self.source_endpoint: missing_variables.append("SDSS_ADMIN_COLLECTION_UUID")
         if not self.destination_endpoint: missing_variables.append("JHU_IDIES_ENDPOINT_UUID")
-        if not self.product_directory: missing_variables.append("PRODUCT_DIR")
         
         if missing_variables:
             error_message = f"Missing required environment variables: {', '.join(missing_variables)}"
             logger.critical(error_message)
-            raise EnvironmentError(error_message)
+            self.ready = False
+        else: self.ready = True
 
+    def set_client(self):
+        authorizer = self.token['transfer_authorizer'] if self.token and 'transfer_authorizer' in self.token else None
+        self.client = globus_sdk.TransferClient(authorizer=authorizer) if authorizer else None
+        
     def set_token(self):
         """
         Validates cached tokens or prompts for a one-time 2FA login.
@@ -109,98 +121,103 @@ class Globus_cli:
             logger.error(f"Failed to fetch user info: {str(error)}")
             self.whoami = None
 
-    def _is_endpoint_accessible(self, transfer_client, endpoint_id, label="Endpoint"):
+    def get_endpoint_available(self, endpoint = None):
         """
         Validates if an endpoint/collection is online and responsive.
         Aborts early if the target is down for maintenance or offline.
         """
-        try:
-            endpoint_information = transfer_client.get_endpoint(endpoint_id)
-            if endpoint_information.get("non_functional") is True:
-                logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is marked NON-FUNCTIONAL.")
-                return False
+        if endpoint not in self.endpoints: endpoint = None
+        
+        if endpoint:
+            try:
+                endpoint_information = self.client.get_endpoint(endpoint_id)
+                if endpoint_information.get("non_functional") is True:
+                    logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is marked NON-FUNCTIONAL.")
+                    endpoint_available = False
+                    
+                if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
+                    if not endpoint_information.get("gcp_connected", True):
+                        logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal {label} ({endpoint_id}) is offline.")
+                        endpoint_available = False
+
+                test_path = endpoint_information.get("default_directory") or "/"
+                self.client.operation_ls(endpoint_id, path=test_path, limit=1)
                 
-            if endpoint_information.get("entity_type") == "GCP_mapped_collection" or "gcp_connected" in endpoint_information:
-                if not endpoint_information.get("gcp_connected", True):
-                    logger.error(f"HEALTH CHECK FAILED: Globus Connect Personal {label} ({endpoint_id}) is offline.")
-                    return False
+                logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}).")
+                endpoint_available = True
 
-            test_path = endpoint_information.get("default_directory") or "/"
-            transfer_client.operation_ls(endpoint_id, path=test_path, limit=1)
-            
-            logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}).")
-            return True
+            except globus_sdk.TransferAPIError as error:
+                if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
+                    logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}) [Status: {error.code}].")
+                    endpoint_available = True
+                
+                logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
+                endpoint_available = False
+            except Exception as error:
+                logger.error(f"Unexpected error when checking health for {label}: {str(error)}")
+                endpoint_available = False
+        else: endpoint_available = False
+        
+        return endpoint_available
 
-        except globus_sdk.TransferAPIError as error:
-            if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
-                logger.info(f"HEALTH CHECK PASSED: Verified live connectivity to {label} ({endpoint_id}) [Status: {error.code}].")
-                return True
-            
-            logger.error(f"HEALTH CHECK FAILED: {label} ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
-            return False
-        except Exception as error:
-            logger.error(f"Unexpected error when checking health for {label}: {str(error)}")
-            return False
-
-    def execute_transfer(self, keyword, destination_directory, label=None):
+    def execute_transfer(self, items=None, options=None):
         """
         Validates both endpoints, dynamically constructs paths, 
         and executes the transfer securely, blocking until completion.
         """
-        source_path = os.path.join(self.product_directory, keyword)
-        transfer_label = label or f"SDSS to JHU: {keyword}"
+        if items and options:
+            label = options['label'] if 'label' in options else "sdss-transfer"
+            preserve_mtime = options['preserve_mtime'] if 'preserve_mtime' in options else None
+            sync = options['sync'] if 'sync' in options else None
+            encrypt = options['encrypt'] if 'encrypt' in options else None
+            verify = options['verify'] if 'verify' in options else None
+            delete = options['delete'] if 'delete' in options else None
+            fail_on_quota_errors = options['fail_on_quota_errors'] if 'fail_on_quota_errors' in options else None
         
-        # Load tokens from cache or prompt for login
-        transfer_authorizer, _ = self.set_token()
-        transfer_client = globus_sdk.TransferClient(authorizer=transfer_authorizer)
-        
-        logger.info("Initiating pre-transfer endpoint validation...")
-        
-        if not self._is_endpoint_accessible(transfer_client, self.source_endpoint, "Source (SDSS Admin)"):
-            logger.critical("CRITICAL: Source endpoint is down or under maintenance. Transfer aborted.")
-            return False
+            # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
+            transfer_data = globus_sdk.TransferData(
+                source_endpoint=self.source_endpoint, 
+                destination_endpoint=self.destination_endpoint, 
+                label=label, 
+                preserve_timestamp=preserve_mtime,
+                sync_level=sync,
+                encrypt_data=encrypt,
+                verify_checksum=verify,
+                delete_destination_extra=delete,
+                fail_on_quota_errors=fail_on_quota_errors
+            )
+            for item in items:
+                transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
             
-        if not self._is_endpoint_accessible(transfer_client, self.destination_endpoint, "Destination (JHU IDIES)"):
-            logger.critical("CRITICAL: Destination endpoint is down or under maintenance. Transfer aborted.")
-            return False
-
-        logger.info("Both endpoints are online. Building transfer dataset...")
-        
-        # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
-        transfer_data = globus_sdk.TransferData(
-            source_endpoint=self.source_endpoint, 
-            destination_endpoint=self.destination_endpoint, 
-            label=transfer_label, 
-            sync_level="checksum"
-        )
-        transfer_data.add_item(source_path, destination_directory, recursive=True)
-        
-        try:
-            logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
-            submit_result = transfer_client.submit_transfer(transfer_data)
-            task_id = submit_result["task_id"]
-            logger.info(f"Transfer submitted successfully. Task ID: {task_id}")
-            
+            try:
+                logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
+                submit_result = self.client.submit_transfer(transfer_data)
+                self.task_id = submit_result["task_id"]
+                logger.info(f"Transfer submitted successfully. Task ID: {task_id}")
+            except globus_sdk.TransferAPIError as error:
+                logger.error(f"Globus Transfer API Error: {error.http_status} - {error.code} - {error.message}")
+                self.task_id = None
+            except Exception as error:
+                logger.error(f"Unexpected error during transfer lifecycle: {str(error)}")
+                self.task_id = None
+        else: self.task_id = None
+               
+    def wait(self, timeout=86400, polling_interval=10):
+        if self.task_id:
             logger.info("Waiting for transfer execution...")
-            transfer_client.task_wait(task_id, timeout=86400, polling_interval=10)
+            self.client.task_wait(self.task_id, timeout=timeout, polling_interval=polling_interval)
             
-            task = transfer_client.get_task(task_id)
-            status = task["status"]
+            self.task = self.client.get_task(self.task_id)
+            self.status = self.task["status"]
             
-            if status == "SUCCEEDED":
+            if self.status == "SUCCEEDED":
                 logger.info(f"SUCCESS: Transfer task {task_id} completed smoothly.")
-                return True
-            elif status == "FAILED":
+            elif self.status == "FAILED":
                 error_message = task.get("fatal_error", "Unknown fatal error occurred.")
                 logger.error(f"FAILURE: Transfer task {task_id} failed. Reason: {error_message}")
-                return False
             else:
                 logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status: {status}")
-                return False
-                
-        except globus_sdk.TransferAPIError as error:
-            logger.error(f"Globus Transfer API Error: {error.http_status} - {error.code} - {error.message}")
-            raise
-        except Exception as error:
-            logger.error(f"Unexpected error during transfer lifecycle: {str(error)}")
-            raise
+        else: self.status = None
+
+                    
+

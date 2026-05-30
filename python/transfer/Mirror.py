@@ -10,11 +10,9 @@ from collections import OrderedDict
 
 class Mirror:
 
-    ext = ['txt', 'log', 'err']
     sync = ['exists', 'size', 'mtime', 'checksum']
-    identifier_length = 36
-    program = 'pando'
-    staging = 'mirror_%s' % program
+    label = 'jhu_ceph'
+    staging = 'mirror_%s' % label
     
     def __init__(self, options=None, location=None, dryrun=None, verbose=None, logger = None):
         self.location = options.location if options else location
@@ -22,14 +20,11 @@ class Mirror:
         self.verbose = options.verbose if options else verbose
         self.logger = logger
         self.item = None
-        self.set_label()
         self.set_dir()
         self.set_user()
         self.set_logger()
         self.set_globus_cli()
-        self.set_endpoints()
-        self.set_ready()
-        self.info_message(message = "ready=%r" % self.ready)
+        self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
     
     def set_dir(self):
         try: self.dir = environ['SAM_LOGS_DIR']
@@ -44,43 +39,21 @@ class Mirror:
             self.dir = None
 
     def set_file(self):
-        self.file = {ext:join(self.dir, "mirror.%s.%s" % (self.program, ext)) for ext in self.ext}
+        self.file = join(self.dir, "mirror.%s.json" % self.label
 
-    def set_globus_cli(self): self.globus_cli = Globus_cli()
-    #def set_process(self):  self.process = Process(program = self.program, logger = self.logger, verbose = self.verbose)
+    def set_globus_cli(self):
+        self.globus_cli = Globus_cli()
+        self.ready = self.globus_cli.ready
+        self.set_active_user()
+        
     def set_logger(self):
-        self.logging = Logging(staging = self.staging, observatory = self.program, dir = self.dir, verbose = self.verbose)
+        self.logging = Logging(staging = self.staging, observatory = self.label, dir = self.dir, verbose = self.verbose)
         self.logger = self.logging.logger
         
     def set_user(self):
         try: self.user = environ['TRANSFER_GLOBUS_USER']
         except Exception as e: self.user = None
     
-    def set_endpoints(self):
-        self.set_sas_endpoint()
-        self.set_sam_endpoint()
-    
-    def set_sas_endpoint(self):
-        target = self.sas_endpoint = {'endpoint': 'SAS'}
-        try: self.sas_endpoint['id'] = environ['TRANSFER_SAS_ENDPOINT']
-        except: self.sas_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
-
-    def set_sam_endpoint(self):
-        target = self.sam_endpoint = {'endpoint': 'SAM'}
-        try: self.sam_endpoint['id'] = environ['TRANSFER_SAM_ENDPOINT']
-        except: self.sam_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
-
-    def set_hpss_endpoint(self):
-        target = self.hpss_endpoint = {'endpoint': 'HPSS'}
-        try: self.hpss_endpoint['id'] = environ['TRANSFER_HPSS_ENDPOINT']
-        except: self.hpss_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
-
     def set_endpoint_base_dir(self, target=None, hpss=None):
         try: target['base_dir'] = self.scratch_dir if hpss else environ['%(endpoint)s_BASE_DIR' % target]
         except Exception as e: target['base_dir'] = '%r' % e
@@ -113,19 +86,13 @@ class Mirror:
             self.info_message(message = "Item %r" % self.item)
         else: self.error_message("Cannot append no location to item")
 
-    def write_batch_file(self):
+    def execute_transfer(self):
         if self.item:
-            lines = []
-            for item in self.item:
-                line = "%(source)s %(destination)s" % item
-                if item['recursive']: line += " -r"
-                lines.append(line)
-            with open(self.file['txt'],'w') as file: file.write("\n".join(lines)+"\n")
-            self.info_message(message = "Create %(txt)s" % self.file)
+            self.globus_cli.execute_transfer(items = self.item, options = self.options)
         else: self.info_message(message = "no items to transfer")
 
     def set_options(self,label=None,sync=None,preserve_mtime=False,fail_on_quota_errors=False,verify=False,delete=False,encrypt=False):
-        self.options = {'batch': self.file['txt']}
+        self.options = {}
         self.options['sas'] = "%(id)s:%(base_dir)s" % self.sas_endpoint
         self.options['target'] = "%(id)s:%(base_dir)s"
         self.options['target'] %= self.sam_endpoint if self.sam_endpoint else self.hpss_endpoint if self.hpss_endpoint else ''
@@ -177,127 +144,25 @@ class Mirror:
             if self.verbose:
                 self.info_message(message = "%(endpoint)s is %(status)s" % target)
 
-    def set_label(self):
-        parts = [self.program.upper()] if self.program else ['MIRROR']
-        if self.location: parts += self.location.split("/")
-        self.label = "_".join(parts)
-
-    def set_ready(self):
-        sas_ready = self.sas_endpoint and self.sas_endpoint['active'] and self.sas_endpoint['base_dir']
-        sam_ready = self.sam_endpoint and self.sam_endpoint['active'] and self.sam_endpoint['base_dir']
-        self.ready = sas_ready and sam_ready and self.user and self.dir and exists(self.dir)
-        self.critical = not self.ready
-        if self.ready:
-            self.item = []
-            self.set_file()
-            self.set_active_user()
-            self.ready = self.user == self.active_user
-            if self.ready:
-                self.info_message(message = "User %s active." % self.user)
-            else: self.info_message(message = "Cannot activate user %r because %r is already active." % (self.user, self.active_user))
-        if not self.ready: self.item = None
-        self.identifier = None
-
     def set_active_user(self):
-        self.globus_cli.set_whoami()
-        whoami = self.globus_cli.whoami
-        if whoami:
-            gid = '@globusid.org'
-            self.active_user = whoami[:-len(gid)] if whoami.endswith(gid) else whoami
-        else: self.active_user = None
-        return self.active_user
-
-    def set_whoami(self):
         if self.ready:
-            command = "globus whoami"
-            self.process.run(command)
-            if self.process.status:
-                self.whoami = None
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else:
-                lines = [line for line in self.process.out.split("\n") if line]
-                self.whoami = lines[0] if len(lines)==1 else None
-
-    def commit(self):
-        if self.item:
-            lines = []
-            for item in self.item:
-                line = "%(source)s %(destination)s" % item
-                if item['recursive']: line += " -r"
-                lines.append(line)
-            with open(self.file['txt'],'w') as file: file.write("\n".join(lines)+"\n")
-            self.info_message(message = "Create %(txt)s" % self.file)
-        else: self.info_message(message = "no items to transfer")
-
-    def set_identifier(self):
-        self.identifier = None
-        if self.process.out:
-            try:
-                self.identifier = search('Task ID: (.*?)\n', self.process.out).group(1)
-                self.info_message(message = "Task ID=%r" % self.identifier)
-            except AttributeError:print("Cannot find identifier within response=%r" % self.process.out)
-        if self.identifier:
-            if len(self.identifier)!=self.identifier_length:
-                self.identifier=None
-                print("Invalid identifier=%r" % self.identifier)
-
-    def submit(self):
-        if self.ready and self.item:
-            command = "globus transfer %(sas)s %(target)s %(mode)s --batch %(batch)s" % self.options
-            if self.verbose:
-                self.info_message(message = "Command: %r" % command)
-            #self.process.run(command, batch=self.options['batch']) older versions of cli
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else:
-                self.set_identifier()
-                self.ready = self.identifier is not None
-            if not self.ready:
-                batch = self.options['batch'] if 'batch' in self.options else  None
-                self.critical_message(message = "transfer submission failure for command=%r with batch=%r" % (command,batch))
-
+            self.globus_cli.set_whoami()
+            whoami = self.globus_cli.whoami
+            self.active_user = "%s <%s>" % whoami if whoami else None
+        else: self.active_user = None
 
     def wait(self):
-        if self.identifier:
-            command = "globus task wait %s" % self.identifier
-            self.info_message(message = "Wait...")
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-
-    def set_details(self):
-        self.details = None
-        if self.identifier:
-            command = "globus task show %s" % self.identifier
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else: self.details = self.process.out
-
-    def set_status(self):
-        self.status = search('Status: (.*?)\n', self.details).group(1) if self.details else None
-        if self.status: self.status = self.status.strip()
-        self.info_message(message = "Status=%r" % self.status)
+        self.globus_cli.wait()
+        self.task = self.globus_cli.task
+        self.status = self.globus_cli.status
         self.ready = self.status == "SUCCEEDED"
-        if not self.ready: self.touch_errfile()
 
-    def write_logfile(self):
-        if self.details and self.file['log']:
-                self.info_message(message = "Create %(log)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.write(self.details)
-                file.close()
-
-    def touch_errfile(self):
-        if self.details and self.file['err']:
-                self.info_message(message = "Touch %(err)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.close()
+    def write_file(self):
+        if self.task:
+            self.info_message(message = "Create %s" % self.file)
+            file = open(self.file,'w')
+            file.write(self.task)
+            file.close()
                 
     def done(self):
         self.info_message(message = "Done!")
