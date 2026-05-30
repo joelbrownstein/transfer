@@ -19,9 +19,9 @@ class Mirror:
         self.logger = logger
         self.item = None
         self.set_base_dir()
+        self.set_user()
         self.set_dir()
         self.set_file()
-        self.set_user()
         self.set_logger()
         self.set_globus_cli()
         self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))

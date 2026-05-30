@@ -170,6 +170,7 @@ class Globus_cli:
         Validates both endpoints, dynamically constructs paths, 
         and executes the transfer securely, blocking until completion.
         """
+        self.task_id = None
         
         if items and options:
             label = options['label'] if 'label' in options else "sdss-transfer"
@@ -226,26 +227,7 @@ class Globus_cli:
                 self.logger.error(message)
                 self.transfer = self.task_id = self.task = None
         else: self.transfer = self.task_id = self.task = None
-               
-    def wait0(self, timeout=86400, polling_interval=10):
-        if self.task_id:
-            self.logger.info("Waiting for transfer execution...")
-            self.client.task_wait(self.task_id, timeout=timeout, polling_interval=polling_interval)
-            
-            self.status = self.task["status"]
-            
-            if self.status == "SUCCEEDED":
-                self.logger.info(f"SUCCESS: Transfer task {task_id} completed smoothly.")
-            elif self.status == "FAILED":
-                error_message = task.get("fatal_error", "Unknown fatal error occurred.")
-                self.logger.error(f"FAILURE: Transfer task {task_id} failed. Reason={error_message}")
-            else:
-                self.logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status={status}")
-        else: self.status = None
-
-                    
-
-
+    
     def wait(self, timeout=86400, polling_interval=5):
         if self.task_id:
             import sys

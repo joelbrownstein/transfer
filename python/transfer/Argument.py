@@ -59,6 +59,7 @@ def transfer_rclone():
     parser.add_argument('-e', '--env', action='store', dest='env', metavar='ENV', help='Rclone this Env')
     parser.add_argument('-o', '--observatory', action='store', dest='observatory', metavar='OBSERVATORY', help='Observatory')
     parser.add_argument('-m', '--mjd', action='store', dest='mjd', type=int, metavar='MJD', help='Rclone this MJD')
+    parser.add_argument(-M, '--mjdlist', nargs='+', type=int, metavar="MJD", help="Batch process ranges 'start end' or explicit MJDs list")
     parser.add_argument('-d', '--dir', action='store', dest='dir', metavar='DIR', help='Log to dir')
     parser.add_argument("-D", "--dryrun", help="dryrun",action="store_true")
     parser.add_argument("-v", "--verbose", help="verbose",action="store_true")

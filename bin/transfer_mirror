@@ -8,13 +8,24 @@ if debug:
     options.identifier = "TEST> GLOBUS UTAH CHPC to JHU IDIES"
     options.verbose = True
     options.location = 'dr8/sdss/spectro/data/55025'
-mirror = Mirror(options=options)
-if mirror.ready:
+if options.mjdlist:
+    for options.mjd in options.mjdlist:
+        mirror = Mirror(options=options)
+        mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
+        if mirror.ready:
+            mirror.append_item()
+            mirror.execute_transfer()
+            mirror.wait()
+            mirror.write_file()
+            mirror.done()
+else:
+    mirror = Mirror(options=options)
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
-    mirror.append_item()
-    mirror.execute_transfer()
-    mirror.wait()
-    mirror.write_file()
-    mirror.done()
+    if mirror.ready:
+        mirror.append_item()
+        mirror.execute_transfer()
+        mirror.wait()
+        mirror.write_file()
+        mirror.done()
 else:
     print("TRANSFER> Not ready!")
