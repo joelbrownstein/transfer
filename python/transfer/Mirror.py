@@ -10,8 +10,9 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, mjd=None, dryrun=None, verbose=None, logger = None):
         self.identifier = options.identifier if options else identifier
+        self.mjd = options.mjd if options and hasattr(options, 'mjd')) else mjd
         self.location = options.location if options else location
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
@@ -47,7 +48,13 @@ class Mirror:
             self.dir = None
 
     def set_file(self):
-        self.file = join(self.dir, "mirror.%s.json" % self.identifier) if self.dir and self.identifier else None
+        if self.dir and self.identifier:
+            if getattr(self, 'mjd', None):
+                self.file = join(self.dir, "mirror.%s.%d.json" % (self.identifier, self.mjd))
+            else:
+                self.file = join(self.dir, "mirror.%s.json" % self.identifier)
+        else:
+            self.file = None
 
     def set_globus_cli(self):
         self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
