@@ -76,8 +76,10 @@ class Mirror:
     def set_logger(self):
         print("LOGGING> needed=%r" % True if not self.logger else False)
         if not self.logger:
-            print("LOGGING> staging=%r" % self.staging)
-            self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, verbose = self.verbose)
+            mode = "manifest" if self.manifest_only else None
+            mode_word = "%s only" % mode if mode else 'transfer'
+            print("LOGGING> staging=%r [%s mode]" % (self.staging, mode_word))
+            self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
             self.logger = self.logging.logger
         
     def set_user(self):
