@@ -2,6 +2,7 @@ from transfer import Globus_cli, Logging
 from os import chdir, makedirs, environ, listdir
 from os.path import join, exists, basename, isdir
 from collections import OrderedDict
+from json import dumps
 
 class Mirror:
 
@@ -122,6 +123,20 @@ class Mirror:
         self.ready = self.status == "SUCCEEDED"
         """
 
+def wait(self):
+        # Remove the 'pass' and actually call the CLI wait loop
+        if self.globus_cli:
+            self.globus_cli.wait()
+            self.task = self.globus_cli.task
+            self.transfer = self.globus_cli.task # Keep synchronized with final completion state
+            self.status = self.globus_cli.status
+            self.ready = self.status == "SUCCEEDED"
+
+    def write_file(self):
+        if self.transfer:
+            self.info_message(message = "Create %s" % self.file)
+            with open(self.file, 'w') as file: file.write(dumps(self.transfer.data, indent=4))
+                
     def write_file(self):
         if self.transfer:
             self.info_message(message = "Create %s" % self.file)
