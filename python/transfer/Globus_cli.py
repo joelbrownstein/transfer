@@ -42,7 +42,7 @@ class Globus_cli:
         if not self.destination_endpoint: missing_variables.append("JHU_IDIES_ENDPOINT_UUID")
         
         if missing_variables:
-            error_message = f"Missing required environment variables: {', '.join(missing_variables)}"
+            error_message = f"Missing required environment variables={', '.join(missing_variables)}"
             self.logger.critical(error_message)
             self.ready = False
         else: self.ready = True
@@ -127,7 +127,7 @@ class Globus_cli:
             self.whoami['email'] = user_profile.get('email')
             self.whoami['id'] = user_profile.get('sub')
         except Exception as error:
-            self.logger.error(f"Failed to fetch user info: {str(error)}")
+            self.logger.error(f"Failed to fetch user info={str(error)}")
             self.whoami = None
 
     def set_endpoint_info(self, endpoint = None):
@@ -154,11 +154,11 @@ class Globus_cli:
 
             except globus_sdk.TransferAPIError as error:
                 if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
-                    self.logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status: {error.code}].")
-                else: self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code: {error.code} - {error.message}")
+                    self.logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status={error.code}].")
+                else: self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code={error.code} - {error.message}")
                 self.endpoint_info = None
             except Exception as error:
-                self.logger.error(f"Unexpected error when checking health: {str(error)}")
+                self.logger.error(f"Unexpected error when checking health={str(error)}")
                 self.endpoint_info = None
         else: self.endpoint_info = None
         
@@ -198,12 +198,13 @@ class Globus_cli:
                 self.logger.info(f"Submitting transfer from {source_path} to {destination_directory}...")
                 submit_result = self.client.submit_transfer(transfer_data)
                 self.task_id = submit_result["task_id"]
-                self.logger.info(f"Transfer submitted successfully. Task ID: {task_id}")
+                self.task = self.client.get_task(self.task_id)
+                self.logger.info(f"Transfer submitted successfully. Task ID={task_id} for task {task}")
             except globus_sdk.TransferAPIError as error:
-                self.logger.error(f"Globus Transfer API Error: {error.http_status} - {error.code} - {error.message}")
+                self.logger.error(f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}")
                 self.task_id = None
             except Exception as error:
-                self.logger.error(f"Unexpected error during transfer lifecycle: {str(error)}")
+                self.logger.error(f"Unexpected error during transfer lifecycle={str(error)}")
                 self.task_id = None
         else: self.task_id = None
                
@@ -212,16 +213,15 @@ class Globus_cli:
             self.logger.info("Waiting for transfer execution...")
             self.client.task_wait(self.task_id, timeout=timeout, polling_interval=polling_interval)
             
-            self.task = self.client.get_task(self.task_id)
             self.status = self.task["status"]
             
             if self.status == "SUCCEEDED":
                 self.logger.info(f"SUCCESS: Transfer task {task_id} completed smoothly.")
             elif self.status == "FAILED":
                 error_message = task.get("fatal_error", "Unknown fatal error occurred.")
-                self.logger.error(f"FAILURE: Transfer task {task_id} failed. Reason: {error_message}")
+                self.logger.error(f"FAILURE: Transfer task {task_id} failed. Reason={error_message}")
             else:
-                self.logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status: {status}")
+                self.logger.warning(f"WARNING: Transfer task {task_id} finished with unexpected status={status}")
         else: self.status = None
 
                     
