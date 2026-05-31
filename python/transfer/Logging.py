@@ -76,7 +76,7 @@ class Logging:
         else: self.dir = None
 
     def set_file(self):
-        log = "%r.log" % self.mjd if self.mjd else ".log"
+        log = "%r.log" % self.mjd if self.mjd else "log"
         log = "transfer.%s-%s.%s" % (self.observatory, self.mode, log) if self.observatory and self.mode else "transfer.%s.%s" % (self.observatory, log) if self.observatory else None
         self.file = join(self.dir, log) if self.dir and log else None
     
