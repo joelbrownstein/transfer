@@ -102,8 +102,7 @@ class Mirror:
                 destination = join(destination,mjd)
             has_source = exists(source)
             if has_source:
-                source_isdir = isdir(source)
-                if source_is_dir:
+                if isdir(source):
                     if not source.endswith('/'): source += '/'
                     if not destination.endswith('/'): destination += '/'
                     if recursive is None: recursive = True
