@@ -145,7 +145,7 @@ class Mirror:
             self.manifest['source'] = self.file['manifest']
             filename = basename(self.file['manifest'])
             with open(self.manifest['source'], 'w') as file:
-                dump(self.manifest['locations'], file, indent=4)
+                dump(self.manifest, file, indent=4)
             self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
             
             # Append to Globus payload
