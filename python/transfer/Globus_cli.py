@@ -197,7 +197,7 @@ class Globus_cli:
             message = "GLOBUS> Adding %r items" % len(items)
             self.logger.info(message)
             if self.verbose: print(message)
-            for index, label, item in enumerate(items.items()):
+            for index, (label, item) in enumerate(items.items()):
                 message = "GLOBUS> item-%r source=%(source)r [recursive=%(recursive)r]" % item
                 self.logger.info(message)
                 if self.verbose: print(message)
