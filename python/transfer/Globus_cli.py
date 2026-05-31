@@ -193,9 +193,14 @@ class Globus_cli:
                 verify_checksum=verify,
                 delete_destination_extra=delete,
                 fail_on_quota_errors=fail_on_quota_errors
-            )
-            if self.verbose: print("GLOBUS> Adding %r items" % len(items))
-            for label, item in items.items():
+            )  
+            message = "GLOBUS> Adding %r items" % len(items)
+            self.logger.info(message)
+            if self.verbose: print(message)
+            for index, label, item in enumerate(items.items()):
+                message = "GLOBUS> item-%r source=%(source)r [recursive=%(recursive)r]" % item
+                self.logger.info(message)
+                if self.verbose: print(message)
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
                 if self.verbose:
                     message = "Add item for label=%r " % label

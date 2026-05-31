@@ -200,7 +200,7 @@ class Mirror:
         
     def execute_transfer(self):
         if not self.manifest_only:
-            if self.item:
+            if self.item:                    
                 self.globus_cli.execute_transfer(items = self.item, options = self.options)
                 self.transfer = self.globus_cli.task
             else:
