@@ -1,6 +1,6 @@
 from transfer import Globus_cli, Logging
 from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
-from os.path import join, exists, basename, isdir, relpath, getmtime, islink, lexists
+from os.path import join, exists, isdir, relpath, getmtime, islink, lexists
 from collections import OrderedDict
 from json import load, dump, dumps
 
@@ -139,12 +139,10 @@ class Mirror:
                         self.manifest['locations'][location] = getmtime(path)
                 
             try:
-                manifest_parts = self.file['manifest'].split('sdsswork/',1)
-                manifest_location = join('sdsswork', manifest_parts[1]) if len(manifest_parts) == 2 else None
-                dest_manifest_dir = join(environ['TRANSFER_MIRROR_IPL_DIR'], manifest_location)
-                filename = basename(self.file['manifest'])
+                parts = self.file['manifest'].split('sdsswork/',1)
+                location = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 self.manifest['source'] = self.file['manifest']
-                self.manifest['destination'] = join(dest_manifest_dir, filename)
+                self.manifest['destination'] = join(environ['TRANSFER_MIRROR_IPL_DIR'], location)
                 if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
             except: self.manifest['source'] = self.manifest['destination'] = None
 
