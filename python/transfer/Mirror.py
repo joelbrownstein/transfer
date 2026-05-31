@@ -102,8 +102,13 @@ class Mirror:
                 destination = join(destination,mjd)
             has_source = exists(source)
             if has_source:
-                if recursive is None: recursive = isdir(source)
-                item = {'source':source, 'destination':destination, 'recursive':recursive} if has_source else None
+                source_isdir = isdir(source)
+                if source_is_dir:
+                    if not source.endswith('/'): source += '/'
+                    if not destination.endswith('/'): destination += '/'
+                    if recursive is None: recursive = True
+                else: recursive = False
+                item = {'source':source, 'destination':destination, 'recursive':recursive}
                 self.item[label] = item
             else: self.error_message("Nonexistent source path=%r" % source)
 
