@@ -198,7 +198,8 @@ class Globus_cli:
             self.logger.info(message)
             if self.verbose: print(message)
             for index, (label, item) in enumerate(items.items()):
-                message = "GLOBUS> item-%r source=%(source)r [recursive=%(recursive)r]" % item
+                message = "ITEM-%r>" % index
+                message += " source=%(source)r destination=%(destination)r [recursive=%(recursive)r]" % item
                 self.logger.info(message)
                 if self.verbose: print(message)
                 transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
