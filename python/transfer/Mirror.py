@@ -138,15 +138,16 @@ class Mirror:
                     elif entity in dirs:
                         self.manifest['locations'][location] = getmtime(path)
                 
-            # Write out to the designated environmental folder (fallback to log dir)
-            local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
-            if local_manifest_dir and not exists(local_manifest_dir): makedirs(local_manifest_dir)
-            
-            self.manifest['source'] = self.file['manifest']
-            filename = basename(self.file['manifest'])
-            dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
-            self.manifest['destination'] = join(dest_manifest_dir, filename)
-            
+            try:
+                manifest_parts = self.file['manifest'].split('sdsswork/',1)
+                manifest_location = join('sdsswork', manifest_parts[1]) if len(manifest_parts) == 2 else None
+                dest_manifest_dir = join(environ['TRANSFER_MIRROR_IPL_DIR'], manifest_location)
+                filename = basename(self.file['manifest'])
+                self.manifest['source'] = self.file['manifest']
+                self.manifest['destination'] = join(dest_manifest_dir, filename)
+                if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
+            except: self.manifest['source'] = self.manifest['destination'] = None
+
             with open(self.manifest['source'], 'w') as file:
                 dump(self.manifest, file, indent=4)
             self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
