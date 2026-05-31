@@ -144,13 +144,12 @@ class Mirror:
             
             self.manifest['source'] = self.file['manifest']
             filename = basename(self.file['manifest'])
+            dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
+            self.manifest['destination'] = join(dest_manifest_dir, filename)
+            
             with open(self.manifest['source'], 'w') as file:
                 dump(self.manifest, file, indent=4)
             self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
-            
-            # Append to Globus payload
-            dest_manifest_dir = environ.get('TRANSFER_MIRROR_DEST_MANIFEST_DIR', local_manifest_dir)
-            self.manifest['destination'] = join(dest_manifest_dir, filename)
             
             label = "manifest-%r" % self.mjd if self.mjd else "manifest"
             self.item[label] = {
