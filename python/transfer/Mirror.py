@@ -1,6 +1,6 @@
 from transfer import Globus_cli, Logging
-from os import chdir, makedirs, environ, listdir, walk, utime
-from os.path import join, exists, basename, isdir, relpath, getmtime
+from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
+from os.path import join, exists, basename, isdir, relpath, getmtime, islink, lexists
 from collections import OrderedDict
 from json import load, dump, dumps
 
@@ -122,12 +122,21 @@ class Mirror:
             source_dir = join(self.base_dir['source'], loc)
             if not exists(source_dir): return
             
-            self.info_message("Pre-flight: Indexing directory timestamps into JSON manifest...")
-            self.manifest = {'source': None, 'destination': None, 'locations': {}}
+            self.info_message("Pre-flight: Getting directory timestamps and symlinks...")
+            self.manifest = {'source': None, 'destination': None, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+
             for root, dirs, files in walk(source_dir):
-                location = relpath(root, source_dir)
-                if location == '.': location = ''
-                self.manifest['locations'][location] = getmtime(root)
+                for entity in dirs + files:
+                    path = join(root, entity)
+                    location = relpath(path, source_dir)
+                    
+                    if islink(path):
+                        self.manifest['symlinks'][location] = {
+                            'target': readlink(path),
+                            'mtime': lstat(path).st_mtime
+                        }
+                    elif entity in dirs:
+                        self.manifest['locations'][location] = getmtime(path)
                 
             # Write out to the designated environmental folder (fallback to log dir)
             local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
