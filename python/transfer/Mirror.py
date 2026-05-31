@@ -21,6 +21,7 @@ class Mirror:
         self.verbose = options.verbose if options else verbose
         self.logger = logger
         self.item = None
+        self.public = self.location.startswith('dr') and not self.location.startswith('dr20')
         self.set_base_dir()
         self.set_user()
         self.set_dir()
@@ -32,7 +33,7 @@ class Mirror:
         self.base_dir = {}
         try:
             self.base_dir['source'] = environ['SAS_BASE_DIR']
-            transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if True else "TRANSFER_MIRROR_IPL_DIR" if False else "SAM_BASE_DIR"
+            transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if self.public else "TRANSFER_MIRROR_IPL_DIR"
             try: self.base_dir['destination'] = environ[transfer_mirror_dir]
             except: self.base_dir = None
         except: self.base_dir = None
