@@ -174,7 +174,7 @@ class Mirror:
             self.error_message("Timestamp sync aborted. Manifest not found: file=%r" % self.file)
             return
             
-        self.info_message("Restoring directory timestamps from manifest: %s" % manifest_file)
+        self.info_message("Restoring directory timestamps from manifest: %(manifest)s" % self.file)
         with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
             
         location = join(self.location, str(self.mjd)) if self.mjd else self.location                
