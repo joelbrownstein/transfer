@@ -35,5 +35,5 @@ if options.mjdlist:
 else: transfer_mirror(options = options)
 
 """
-transfer_mirror -i dr8-spectro-data-53450 -m 53450 -l dr8/sdss/spectro/data -v
+transfer_mirror -i dr8_spectro_data -m 53450 -l dr8/sdss/spectro/data -v
 """
