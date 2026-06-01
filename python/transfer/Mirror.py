@@ -228,7 +228,7 @@ class Mirror:
                     else:
                         symlink(target, path)
                         self.sync_count['symlinks'] ['success'] += 1
-                self.info_message(f"Sync symlinks complete. Success count=%(success), Fail count=%(fail)r" % self.sync_count['symlinks'])
+                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync_count['symlinks'])
             else:
                 self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
                     
@@ -250,7 +250,7 @@ class Mirror:
                         success = False
                     if success: self.sync_count['timestamps'] ['success'] += 1
                     else: self.sync_count['timestamps'] ['fail'] += 1
-                self.info_message(f"Sync timestamp complete. Success count=%(success), Fail count=%(fail)r" % self.sync_count['timestamps'])
+                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync_count['timestamps'])
             else:
                 self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
         
