@@ -218,8 +218,8 @@ class Mirror:
             status = 'success' if success else 'fail'
             self.sync['symlinks'].append("ln -s %s %s #success=%r" % (target, path, success))
             self.sync['count']['symlinks'][status] += 1
-            timestamp_ok = self.utime(path = path, mtime = mtime) if success else True
-            if timestamp_ok ok:
+            symlink_utime = self.utime(path = path, mtime = mtime) if success else True
+            if not symlink_utime:
                 self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
             
     def sync_symlinks(self):
