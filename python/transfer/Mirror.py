@@ -60,7 +60,7 @@ class Mirror:
                 if self.location:
                     self.dir[dir] = join(self.dir[dir], self.location)
                     if not exists(self.dir[dir]): makedirs(self.dir[dir])
-                self.info_message(message = "dir=%r to %r" % (dir,self.dir[dir]))
+                self.info_message(message = "%s> %r" % (dir.upper(),self.dir[dir]))
             else:
                 self.info_message(message = "nonexistent directory %r" % self.dir[dir])
                 self.dir[dir] = None
@@ -68,11 +68,12 @@ class Mirror:
     def set_file(self):
         self.file = {dir: None for dir in self.dir.keys()}
         for file in self.file.keys():
+            prefix = "mirror" if file == "log" else file
             if self.dir and self.dir[file] and self.identifier:
                 if getattr(self, 'mjd', None):
-                    self.file[file] = join(self.dir[file], "mirror.%s.%d.json" % (self.identifier, self.mjd))
+                    self.file[file] = join(self.dir[file], "%s.%s.%d.json" % (prefix, self.identifier, self.mjd))
                 else:
-                    self.file[file] = join(self.dir[file], "mirror.%s.json" % self.identifier)
+                    self.file[file] = join(self.dir[file], "%s.%s.json" % (prefix, self.identifier))
 
     def set_globus_cli(self):
         if not self.manifest_only:
