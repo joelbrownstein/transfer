@@ -2,9 +2,10 @@
 from transfer import Mirror, Argument
 arg = Argument('sync_mirror_manifest')
 options = arg.options
-options.verbose = True
+options.identifier = "dr8_spectro_data"
 options.location = 'dr8/sdss/spectro/data'
 options.mjd = 53450
+options.verbose = True
 
 def sync_mirror(options = None):
     mirror = Mirror(options=options, save_manifest=True, manifest_only=True)

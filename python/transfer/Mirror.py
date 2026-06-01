@@ -120,11 +120,8 @@ class Mirror:
         if self.save_manifest:
             if not self.base_dir or not self.location or self.item is None: return
             
-            loc = self.location
-            if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
-                loc = join(loc, str(self.mjd))
-                
-            source_dir = join(self.base_dir['source'], loc)
+            location = join(self.location, str(self.mjd)) if self.mjd else self.location                
+            source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
             self.info_message("Pre-flight: Getting directory timestamps and symlinks...")
@@ -168,35 +165,44 @@ class Mirror:
         POST-FLIGHT (JHU side): Reads the transferred JSON manifest from the 
         environmental directory and applies the exact timestamps via os.utime.
         """
-        local_manifest_dir = environ.get('TRANSFER_MIRROR_MANIFEST_DIR', self.dir)
-        manifest_file = join(local_manifest_dir, "manifest.%s.json" % self.identifier)
         
-        if not exists(manifest_file):
-            self.error_message("Timestamp sync aborted. Manifest not found: %s" % manifest_file)
+        if self.file and 'manifest' in self.file:
+            if not exists(self.file['manifest']):
+                self.error_message("Timestamp sync aborted. Manifest not found: path=%(manifest)r" % self.file)
+                return
+        else:
+            self.error_message("Timestamp sync aborted. Manifest not found: file=%r" % self.file)
             return
             
         self.info_message("Restoring directory timestamps from manifest: %s" % manifest_file)
-        with open(manifest_file, 'r') as f:
-            manifest = load(f)
+        with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
             
-        loc = self.location
-        if getattr(self, 'mjd', None) and not loc.endswith(str(self.mjd)):
-            loc = join(loc, str(self.mjd))
+        location = join(self.location, str(self.mjd)) if self.mjd else self.location                
+        dest_dir = join(self.base_dir['destination'], location)
+        if not exists(dest_dir):
+            self.error_message("Timestamp sync aborted. Destination directory not found: path=%r" % dest_dir)
+            return
             
-        dest_dir = join(self.base_dir['destination'], loc)
+        locations = self.manifest['locations'] if 'locations' in self.manifest else None
         
-        success_count, error_count = 0, 0
-        for rel_p, mtime in manifest.items():
-            target_dir = join(dest_dir, rel_p) if rel_p else dest_dir
-            if exists(target_dir) and isdir(target_dir):
-                try:
-                    utime(target_dir, (mtime, mtime))
-                    success_count += 1
-                except Exception as e:
-                    self.error_message("Failed to utime %s: %s" % (target_dir, e))
-                    error_count += 1
+        if locations:
         
-        self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
+            success_count, error_count = 0, 0
+            for location, mtime in manifest.items():
+                target_dir = join(dest_dir, location) if location else dest_dir
+                if exists(target_dir) and isdir(target_dir):
+                    try:
+                        utime(target_dir, (mtime, mtime))
+                        success_count += 1
+                    except Exception as e:
+                        self.error_message("Failed to utime %s: %s" % (target_dir, e))
+                        error_count += 1
+            
+            self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
+            
+        else:
+            self.error_message(f"Directory timestamp restoration failed.  locations not in manifest=%r" % self.manifest)
+            return
         
     def execute_transfer(self):
         if not self.manifest_only:
