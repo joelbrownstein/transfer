@@ -7,22 +7,21 @@ from json import load, dump, dumps
 class Mirror:
 
     sync = ['exists', 'size', 'mtime', 'checksum']
-    sync_count = {}
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None, sync = None):
         self.identifier = options.identifier if options else identifier
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
         self.manifest_only = options.manifest_only if options and 'manifes_only' in options else manifest_only
-        if self.manifest_only: self.save_manifest = True
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.logger = logger
         self.item = None
-        self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
+        self.set_sync(sync = sync)
+        self.set_public()
         self.set_base_dir()
         self.set_user()
         self.set_dir()
@@ -30,6 +29,16 @@ class Mirror:
         self.set_logger()
         self.set_globus_cli()
     
+    def set_public(self):
+        self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
+
+    def set_sync(self, sync = None):
+        if sync:
+            self.sync = {'timestamps': [], 'symlinks': [], 'count': {}}
+            self.save_manifest = True
+        else: self.sync = None
+        if self.manifest_only: self.save_manifest = True
+
     def set_base_dir(self):
         self.base_dir = {}
         try:
@@ -43,6 +52,7 @@ class Mirror:
         self.dir = {'log': 'TRANSFER_MIRROR_LOG_DIR'}
         if self.save_manifest: self.dir['manifest'] = 'TRANSFER_MIRROR_MANIFEST_DIR'
         if not self.manifest_only: self.dir['task'] = 'TRANSFER_MIRROR_TASK_DIR'
+        if self.sync: self.dir['sync'] = 'TRANSFER_MIRROR_SYNC_DIR'
         for dir, env in self.dir.items():
             try: self.dir[dir] = environ[env]
             except: self.dir[dir] = None
@@ -198,6 +208,7 @@ class Mirror:
             except Exception as e:
                 self.error_message("Failed to utime path=%r: %r" % (path, e))
                 success = False
+            self.sync['timestamps'].append("touch -h -d @%r %s #success=%r" % (mtime, path, success))
         else: success = None
         return success
 
@@ -206,29 +217,32 @@ class Mirror:
             symlinks = self.manifest['symlinks'] if 'symlinks' in self.manifest else None
             if symlinks is not None:
                 self.info_message("Restoring symlinks...")
-                self.sync_count['symlinks'] = {'success': 0, 'fail': 0}
+                self.sync['count']['symlinks'] = {'success': 0, 'fail': 0}
                 for location, link in symlinks.items():
                     path = join(self.item['directory'], location)
                     target, mtime = ( link['target'], link['mtime'] )
                     if lexists(path):
                         if islink(path) and readlink(path) == target:
                             self.info_message("Link already exists for target=%r to path=%r" % (target, path))
-                            self.sync_count['symlinks'] ['success'] += 1
+                            self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path)
+                            self.sync['count']['symlinks'] ['success'] += 1
                         else:
                             try:
                                 unlink(path)
                                 symlink(target, path)
-                                self.sync_count['symlinks'] ['success'] += 1
+                                self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path)
+                                self.sync['count']['symlinks'] ['success'] += 1
                                 success = self.utime(path = path, mtime = mtime)    
                                 if not success:
                                     self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
                             except Exception as e:
                                 self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
-                                self.sync_count['symlinks'] ['fail'] += 1
+                                self.sync['symlinks'].append("ln -s %s %s #success=False" % (target, path)
+                                self.sync['count']['symlinks'] ['fail'] += 1
                     else:
                         symlink(target, path)
-                        self.sync_count['symlinks'] ['success'] += 1
-                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync_count['symlinks'])
+                        self.sync['count']['symlinks'] ['success'] += 1
+                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
             else:
                 self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
                     
@@ -237,7 +251,7 @@ class Mirror:
         if self.item and self.item['exists'] and self.manifest:
             locations = self.manifest['locations'] if 'locations' in self.manifest else None
             if locations is not None:
-                self.sync_count['timestamps'] = {'success': 0, 'fail': 0}
+                self.sync['count']['timestamps'] = {'success': 0, 'fail': 0}
                 for location, mtime in locations.items():
                     path = join(self.item['directory'], location) if location else self.item['directory']
                     if exists(path):
@@ -248,9 +262,9 @@ class Mirror:
                     else:
                         self.error_message("Failed to sync timestamp path=%r does not exist" % path)
                         success = False
-                    if success: self.sync_count['timestamps'] ['success'] += 1
-                    else: self.sync_count['timestamps'] ['fail'] += 1
-                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync_count['timestamps'])
+                    if success: self.sync['count']['timestamps'] ['success'] += 1
+                    else: self.sync['count']['timestamps'] ['fail'] += 1
+                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps'])
             else:
                 self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
         
@@ -303,6 +317,12 @@ class Mirror:
             self.status = self.globus_cli.status
             self.ready = self.status == "SUCCEEDED"
 
+    def write_sync_file(self):
+        if self.transfer:
+            self.info_message(message = "Create %(sync)s" % self.file)
+            with open(self.file['sync'], 'w') as file:
+                file.write(dumps(self.sync, indent=4))
+                
     def write_task_file(self):
         if self.transfer:
             self.info_message(message = "Create %(task)s" % self.file)
