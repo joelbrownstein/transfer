@@ -218,9 +218,9 @@ class Mirror:
             status = 'success' if success else 'fail'
             self.sync['symlinks'].append("ln -s %s %s #success=%r" % (target, path, success))
             self.sync['count']['symlinks'][status] += 1
-            if success: ok = self.utime(path = path, mtime = mtime)    
-            if not ok:
-
+            timestamp_ok = self.utime(path = path, mtime = mtime) if success else True
+            if timestamp_ok ok:
+                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
             
     def sync_symlinks(self):
         if self.item and self.item['exists'] and self.manifest:
@@ -241,7 +241,7 @@ class Mirror:
                                 symlink(target, path)
                                 self.finalize_link(path=path, target=target, mtime=mtime, success=True)
                             except Exception as e:
-                                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                                self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
                                 self.finalize_symlink(path=path, target=target, mtime=mtime, success=False)
                     else:
                         symlink(target, path)
