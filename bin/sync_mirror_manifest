@@ -7,7 +7,7 @@ options.location = 'dr8/sdss/spectro/data'
 options.mjd = 53450
 
 def sync_mirror(options = None):
-    mirror = Mirror(options=options)
+    mirror = Mirror(options=options, save_manifest=True, manifest_only=True)
     if mirror.ready:
         mirror.set_item_from_manifest()
         if mirror.item:
