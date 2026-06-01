@@ -318,7 +318,7 @@ class Mirror:
             self.ready = self.status == "SUCCEEDED"
 
     def write_sync_file(self):
-        if self.transfer:
+        if self.sync:
             self.info_message(message = "Create %(sync)s" % self.file)
             with open(self.file['sync'], 'w') as file:
                 file.write(dumps(self.sync, indent=4))
