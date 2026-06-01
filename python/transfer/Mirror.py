@@ -164,7 +164,7 @@ class Mirror:
     def set_item_for_sync(self):
         self.item = {}
         self.item['location'] = join(self.location, str(self.mjd)) if self.mjd else self.location                
-        self.item['directory'] = join(self.base_dir['destination'], location)
+        self.item['directory'] = join(self.base_dir['destination'], self.item['location'] )
         self.item['exists'] = exists(self.item['directory'])
         if self.item['exists']:
             self.info_message("Sync item. Destination directory found: path=%(directory)r" % self.item)
