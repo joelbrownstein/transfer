@@ -8,8 +8,8 @@ def mirror_sync(options = None):
     if mirror.ready:
         mirror.set_item_for_sync()
         mirror.set_manifest_for_sync()
-        mirror.sync_timestamps()
         mirror.sync_symlinks()
+        mirror.sync_timestamps()
         mirror.write_sync_file()
         mirror.done()
     else:
