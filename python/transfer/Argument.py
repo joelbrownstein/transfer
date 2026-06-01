@@ -57,7 +57,7 @@ def transfer_mirror():
     args = parser.parse_args()
     return parser.prog, args
     
-def sync_mirror_timestamps():
+def sync_mirror_manifest():
     parser = ArgumentParser()
     parser.add_argument("-i", "--identifier", help="identifier label pattern", metavar="IDENTIFIER")
     parser.add_argument("-l", "--location", help="location directory", metavar="LOCATION")

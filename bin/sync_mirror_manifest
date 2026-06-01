@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 from transfer import Mirror, Argument
-arg = Argument('transfer_mirror')
+arg = Argument('sync_mirror_manifest')
 options = arg.options
+options.verbose = True
+options.location = 'dr8/sdss/spectro/data'
+options.mjd = 53450
 
 def sync_mirror(options = None):
     mirror = Mirror(options=options)
     if mirror.ready:
         mirror.set_item_from_manifest()
         if mirror.item:
-            mirror.sync_timestamps()
+            mirror.sync_manifest()
             mirror.write_file()
             mirror.done()
         else:

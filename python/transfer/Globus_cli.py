@@ -46,8 +46,8 @@ class Globus_cli:
         if not self.destination_endpoint: missing_variables.append("JHU_IDIES_ENDPOINT_UUID")
         
         if missing_variables:
-            error_message = f"Missing required environment variables={', '.join(missing_variables)}"
-            self.logger.critical(error_message)
+            error_message = f"GLOBUS> Missing environment variables={', '.join(missing_variables)}"
+            self.logger.warning(error_message)
             self.ready = False
         else: self.ready = True
 
