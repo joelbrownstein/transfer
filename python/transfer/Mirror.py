@@ -35,7 +35,7 @@ class Mirror:
     def set_sync(self, sync = None):
         if sync:
             self.sync = {'timestamps': [], 'symlinks': [], 'count': {}}
-            self.save_manifest = True
+            self.manifest_only = True
         else: self.sync = None
         if self.manifest_only: self.save_manifest = True
 
@@ -90,7 +90,7 @@ class Mirror:
         print("LOGGING> needed=%r" % True if not self.logger else False)
         if not self.logger:
             mode = "manifest" if self.manifest_only else None
-            mode_word = "%s-only" % mode if mode else 'transfer'
+            mode_word = "%s-only" % mode if mode else 'sync' if self.sync else 'transfer'
             print("LOGGING> staging=%r [%s mode]" % (self.staging, mode_word))
             self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
             self.logger = self.logging.logger
