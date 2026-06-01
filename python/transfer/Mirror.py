@@ -6,7 +6,7 @@ from json import load, dump, dumps
 
 class Mirror:
 
-    sync = ['exists', 'size', 'mtime', 'checksum']
+    sync_options = ['exists', 'size', 'mtime', 'checksum']
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
@@ -284,7 +284,7 @@ class Mirror:
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
         self.options['label'] = label if label else self.identifier
-        self.options['sync'] = sync if sync in self.sync else self.sync[0]
+        self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
         self.options['verify'] = verify
