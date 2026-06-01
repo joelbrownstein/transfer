@@ -7,6 +7,7 @@ from json import load, dump, dumps
 class Mirror:
 
     sync = ['exists', 'size', 'mtime', 'checksum']
+    sync_count = {}
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
@@ -160,49 +161,98 @@ class Mirror:
             }
         else: self.manifest = None
 
-    def sync_manifest(self):
-        """
-        POST-FLIGHT (JHU side): Reads the transferred JSON manifest from the 
-        environmental directory and applies the exact timestamps via os.utime.
-        """
+    def set_item_for_sync(self):
+        self.item = {}
+        self.item['location'] = join(self.location, str(self.mjd)) if self.mjd else self.location                
+        self.item['directory'] = join(self.base_dir['destination'], location)
+        self.item['exists'] = exists(self.item['directory'])
+        if self.item['exists']:
+            self.info_message("Sync item. Destination directory found: path=%(directory)r" % self.item)
+        else:
+            self.error_message("Sync aborted. Destination directory not found: path=%(directory)r" % self.item)
+
+    def set_manifest_for_sync(self):
         
         if self.file and 'manifest' in self.file:
-            if not exists(self.file['manifest']):
-                self.error_message("Timestamp sync aborted. Manifest not found: path=%(manifest)r" % self.file)
-                return
+            if exists(self.file['manifest']):
+                self.info_message("Restoring directory timestamps from manifest: %(manifest)s" % self.file)
+                try:
+                    with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
+                except Exception as e:
+                    self.error_message("Sync aborted: %r" % e)
+                    self.manifest = None
+            else:
+                self.error_message("Sync aborted. Manifest not found: path=%(manifest)r" % self.file)
+                self.manifest = None
         else:
-            self.error_message("Timestamp sync aborted. Manifest not found: file=%r" % self.file)
-            return
+            self.error_message("Sync aborted. Manifest not found: file=%r" % self.file)
+            self.manifest = None
             
-        self.info_message("Restoring directory timestamps from manifest: %(manifest)s" % self.file)
-        with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
             
-        location = join(self.location, str(self.mjd)) if self.mjd else self.location                
-        dest_dir = join(self.base_dir['destination'], location)
-        if not exists(dest_dir):
-            self.error_message("Timestamp sync aborted. Destination directory not found: path=%r" % dest_dir)
-            return
-            
-        locations = self.manifest['locations'] if 'locations' in self.manifest else None
-        
-        if locations:
-        
-            success_count, error_count = 0, 0
-            for location, mtime in self.manifest.items():
-                target_dir = join(dest_dir, location) if location else dest_dir
-                if exists(target_dir) and isdir(target_dir):
-                    try:
-                        utime(target_dir, (mtime, mtime))
-                        success_count += 1
-                    except Exception as e:
-                        self.error_message("Failed to utime %s: %s" % (target_dir, e))
-                        error_count += 1
-            
-            self.info_message(f"Directory timestamp restoration complete. Succeeded: {success_count}, Failed: {error_count}")
-            
-        else:
-            self.error_message(f"Directory timestamp restoration failed.  locations not in manifest=%r" % self.manifest)
-            return
+    def utime(self, path = None, mtime = None):
+        if path and mtime:
+            mtimes = ( mtime, mtime )
+            try:
+                utime(path, mtimes, follow_symlinks = False)
+                success = True
+            except Exception as e:
+                self.error_message("Failed to utime path=%r: %r" % (path, e))
+                success = False
+        else: success = None
+        return success
+
+    def sync_symlinks(self):
+        if self.item and self.item['exists'] and self.manifest:
+            symlinks = self.manifest['symlinks'] if 'symlinks' in self.manifest else None
+            if symlinks is not None:
+                self.info_message("Restoring symlinks...")
+                self.sync_count['symlinks'] = {'success': 0, 'fail': 0}
+                for location, link in symlinks.items():
+                    path = join(self.item['directory'], location)
+                    target, mtime = ( link['target'], link['mtime'] )
+                    if lexists(path):
+                        if islink(path) and readlink(path) == target:
+                            self.info_message("Link already exists for target=%r to path=%r" % (target, path))
+                            self.sync_count['symlinks'] ['success'] += 1
+                        else:
+                            try:
+                                unlink(path)
+                                symlink(target, path)
+                                self.sync_count['symlinks'] ['success'] += 1
+                                success = self.utime(path = path, mtime = mtime)    
+                                if not success:
+                                    self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                            except Exception as e:
+                                self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
+                                self.sync_count['symlinks'] ['fail'] += 1
+                    else:
+                        symlink(target, path)
+                        self.sync_count['symlinks'] ['success'] += 1
+                self.info_message(f"Sync symlinks complete. Success count=%(success), Fail count=%(fail)r" % self.sync_count['symlinks'])
+            else:
+                self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
+                    
+
+    def sync_timestamps(self):
+        if self.item and self.item['exists'] and self.manifest:
+            locations = self.manifest['locations'] if 'locations' in self.manifest else None
+            if locations is not None:
+                self.sync_count['timestamps'] = {'success': 0, 'fail': 0}
+                for location, mtime in locations.items():
+                    path = join(self.item['directory'], location) if location else self.item['directory']
+                    if exists(path):
+                        if isdir(path): success = self.utime(path = path, mtime = mtime)
+                        else:
+                            self.error_message("Failed to sync timestamp path=%r is not a directory" % path)
+                            success = False
+                    else:
+                        self.error_message("Failed to sync timestamp path=%r does not exist" % path)
+                        success = False
+                    if success: self.sync_count['timestamps'] ['success'] += 1
+                    else: self.sync_count['timestamps'] ['fail'] += 1
+                self.info_message(f"Sync timestamp complete. Success count=%(success), Fail count=%(fail)r" % self.sync_count['timestamps'])
+            else:
+                self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
         
     def execute_transfer(self):
         if not self.manifest_only:

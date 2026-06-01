@@ -10,7 +10,10 @@ options.verbose = True
 def sync_mirror(options = None):
     mirror = Mirror(options=options, save_manifest=True, manifest_only=True)
     if mirror.ready:
-        mirror.sync_manifest()
+        mirror.set_item_for_sync()
+        mirror.set_manifest_for_sync()
+        mirror.sync_timestamps()
+        mirror.sync_symlinks()
         mirror.write_file()
         mirror.done()
     else:
