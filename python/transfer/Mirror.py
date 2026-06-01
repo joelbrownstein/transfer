@@ -188,7 +188,7 @@ class Mirror:
         if locations:
         
             success_count, error_count = 0, 0
-            for location, mtime in manifest.items():
+            for location, mtime in self.manifest.items():
                 target_dir = join(dest_dir, location) if location else dest_dir
                 if exists(target_dir) and isdir(target_dir):
                     try:
