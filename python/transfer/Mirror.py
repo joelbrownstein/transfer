@@ -224,20 +224,20 @@ class Mirror:
                     if lexists(path):
                         if islink(path) and readlink(path) == target:
                             self.info_message("Link already exists for target=%r to path=%r" % (target, path))
-                            self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path)
+                            self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
                             self.sync['count']['symlinks'] ['success'] += 1
                         else:
                             try:
                                 unlink(path)
                                 symlink(target, path)
-                                self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path)
+                                self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
                                 self.sync['count']['symlinks'] ['success'] += 1
                                 success = self.utime(path = path, mtime = mtime)    
                                 if not success:
                                     self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
                             except Exception as e:
                                 self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
-                                self.sync['symlinks'].append("ln -s %s %s #success=False" % (target, path)
+                                self.sync['symlinks'].append("ln -s %s %s #success=False" % (target, path))
                                 self.sync['count']['symlinks'] ['fail'] += 1
                     else:
                         symlink(target, path)
