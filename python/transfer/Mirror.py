@@ -21,7 +21,7 @@ class Mirror:
         self.verbose = options.verbose if options else verbose
         self.logger = logger
         self.item = None
-        self.public = if self.location and self.location.startswith('dr') and not self.location.startswith('dr20')
+        self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
         self.set_base_dir()
         self.set_user()
         self.set_dir()
