@@ -186,7 +186,7 @@ class Mirror:
         
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
-                self.info_message("Restoring directory timestamps from manifest: %(manifest)s" % self.file)
+                self.info_message("SYNC> manifest path=%(manifest)r" % self.file)
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
                 except Exception as e:
@@ -242,6 +242,7 @@ class Mirror:
                                 self.sync['count']['symlinks'] ['fail'] += 1
                     else:
                         symlink(target, path)
+                        self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
                         self.sync['count']['symlinks'] ['success'] += 1
                 self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
             else:
@@ -252,6 +253,7 @@ class Mirror:
         if self.item and self.item['exists'] and self.manifest:
             locations = self.manifest['locations'] if 'locations' in self.manifest else None
             if locations is not None:
+                self.info_message("Restoring timestamps...")
                 self.sync['count']['timestamps'] = {'success': 0, 'fail': 0}
                 for location, mtime in locations.items():
                     path = join(self.item['directory'], location) if location else self.item['directory']
