@@ -213,6 +213,15 @@ class Mirror:
         else: success = None
         return success
 
+    def finalize_symlink(self, path=None, target=None, mtime=None, success=None):
+        if path and target and mtime:
+            status = 'success' if success else 'fail'
+            self.sync['symlinks'].append("ln -s %s %s #success=%r" % (target, path, success))
+            self.sync['count']['symlinks'][status] += 1
+            if success: ok = self.utime(path = path, mtime = mtime)    
+            if not ok:
+
+            
     def sync_symlinks(self):
         if self.item and self.item['exists'] and self.manifest:
             symlinks = self.manifest['symlinks'] if 'symlinks' in self.manifest else None
@@ -225,29 +234,21 @@ class Mirror:
                     if lexists(path):
                         if islink(path) and readlink(path) == target:
                             self.info_message("Link already exists for target=%r to path=%r" % (target, path))
-                            self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
-                            self.sync['count']['symlinks'] ['success'] += 1
+                            self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
                         else:
                             try:
                                 unlink(path)
                                 symlink(target, path)
-                                self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
-                                self.sync['count']['symlinks'] ['success'] += 1
-                                success = self.utime(path = path, mtime = mtime)    
-                                if not success:
-                                    self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                                self.finalize_link(path=path, target=target, mtime=mtime, success=True)
                             except Exception as e:
-                                self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
-                                self.sync['symlinks'].append("ln -s %s %s #success=False" % (target, path))
-                                self.sync['count']['symlinks'] ['fail'] += 1
+                                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                                self.finalize_symlink(path=path, target=target, mtime=mtime, success=False)
                     else:
                         symlink(target, path)
-                        self.sync['symlinks'].append("ln -s %s %s #success=True" % (target, path))
-                        self.sync['count']['symlinks'] ['success'] += 1
+                        self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
                 self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
             else:
                 self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
-                    
 
     def sync_timestamps(self):
         if self.item and self.item['exists'] and self.manifest:
@@ -265,8 +266,8 @@ class Mirror:
                     else:
                         self.error_message("Failed to sync timestamp path=%r does not exist" % path)
                         success = False
-                    if success: self.sync['count']['timestamps'] ['success'] += 1
-                    else: self.sync['count']['timestamps'] ['fail'] += 1
+                    if success: self.sync['count']['timestamps']['success'] += 1
+                    else: self.sync['count']['timestamps']['fail'] += 1
                 self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps'])
             else:
                 self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
