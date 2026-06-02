@@ -1,4 +1,4 @@
-from transfer import Config, Process, Logging, Summary, Backup, Copy, Globus, Rclone, Report, Sync
+from transfer import Config, Process, Logging, Summary, Backup, Copy, Globus, Rclone, Report, Sync, Mirror
 from os import chdir, getcwd, listdir, environ, rmdir
 from os.path import join, exists, isdir, basename
 import re
@@ -253,6 +253,30 @@ class Transfer:
                 self.summary.save(stage=self.stage, status='failure')
 
     def run_mirror(self):
+        if self.mirror and self.ready:
+            self.stage = 'mirror'
+            self.logging.set_stage(stage=self.stage)
+            logger = self.logging.logger
+            print(f"mirror = Mirror(staging={self.config.staging}, observatory={self.config.observatory}, mode={self.config.mode}, mjd={self.mjd}, dir={self.logging.dir}, verbose={self.verbose})")
+            """mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            if mirror.ready:
+                mirror.append_item()
+                mirror.set_manifest()
+                mirror.execute_transfer()
+                if mirror.transfer:
+                    mirror.wait()
+                    mirror.write_task_file()
+                    mirror.done()
+                else: self.ready = False
+            else: self.ready = False
+
+            if self.ready: self.summary.save(stage=self.stage, status='success')
+            else:
+                logger.critical("ERROR! Globus is not ready for MIRROR")
+                self.summary.save(stage=self.stage, status='failure')"""
+
+
+    def run_mirror0(self):
         logger = self.logging.logger
         #if self.config.mode == 'mos': self.run_mirror_via_globus()
         #elif self.config.mode == 'lvm': self.run_mirror_via_sync()

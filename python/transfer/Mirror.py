@@ -10,7 +10,13 @@ class Mirror:
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, logger = None, sync = None):
+    def __init__(self, options=None, staging=None, observatory=None, mode=None, process=None, logger=None, log_dir=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, sync = None):
+        self.staging = staging
+        self.observatory = observatory
+        self.mode = mode
+        self.process = process
+        self.logger = logger
+        self.log_dir = log_dir
         self.identifier = options.identifier if options else identifier
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
@@ -18,8 +24,8 @@ class Mirror:
         self.manifest_only = options.manifest_only if options and 'manifes_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
-        self.logger = logger
         self.item = None
+        self.set_stage(observatory=observatory,mode=mode)
         self.set_sync(sync = sync)
         self.set_public()
         self.set_base_dir()
@@ -29,6 +35,10 @@ class Mirror:
         self.set_logger()
         self.set_globus_cli()
     
+    def set_stage(self, observatory=None, mode=None):
+        self.stage = "transfer.%s" % observatory if observatory else "transfer"
+        self.stage += ".%s.mirror" % mode if mode else ""
+
     def set_public(self):
         self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
 
@@ -54,7 +64,7 @@ class Mirror:
         if not self.manifest_only: self.dir['task'] = 'TRANSFER_MIRROR_TASK_DIR'
         if self.sync: self.dir['sync'] = 'TRANSFER_MIRROR_SYNC_DIR'
         for dir, env in self.dir.items():
-            try: self.dir[dir] = environ[env]
+            try: self.dir[dir] = self.log_dir if dir == 'log' and self.log_dir else environ[env] 
             except: self.dir[dir] = None
             if self.dir and self.dir[dir] and exists(self.dir[dir]):
                 if self.location:
@@ -87,8 +97,7 @@ class Mirror:
             self.active_user = None
             self.info_message(message = "ready=%r for manifest_only=%r" % (self.ready, self.manifest_only))
         
-    def set_logger(self):
-        print("LOGGING> needed=%r" % True if not self.logger else False)
+    def set_logger(self):        
         if not self.logger:
             mode = "manifest" if self.manifest_only else None
             mode_word = "%s-only" % mode if mode else 'sync' if self.sync else 'transfer'
