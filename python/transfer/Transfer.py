@@ -258,7 +258,7 @@ class Transfer:
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             print(f"mirror = Mirror(staging={self.config.staging}, observatory={self.config.observatory}, mode={self.config.mode}, mjd={self.mjd}, dir={self.logging.dir}, verbose={self.verbose})")
-            """mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            """mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if mirror.ready:
                 mirror.append_item()
                 mirror.set_manifest()

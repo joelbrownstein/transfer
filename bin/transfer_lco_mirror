@@ -18,4 +18,6 @@ if transfer.logging.ready:
 
 """
 transfer_lco_mirror -m 61180 -v
+from transfer import Mirror
+mirror = Mirror(staging='/uufs/chpc.utah.edu/common/home/sdss/sdsswork/data/staging/lco', observatory='lco', mode='mos', mjd=61180, dir='/uufs/chpc.utah.edu/common/home/sdss/sdsswork/data/staging/lco/log/mos/61180/1', verbose=True)
 """
