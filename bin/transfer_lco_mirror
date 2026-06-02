@@ -25,6 +25,8 @@ transfer_lco_mirror -m 61180 -v
 from transfer import Mirror
 mirror = Mirror(staging='/uufs/chpc.utah.edu/common/home/sdss/sdsswork/data/staging/lco', observatory='lco', mode='mos', mjd=61180, log_dir='/uufs/chpc.utah.edu/common/home/sdss/sdsswork/data/staging/lco/log/mos/61180/1', verbose=True)
 #for mirror.location in ['sdsswork/data/gcam/apo']: mirror.append_item()
+self = mirror #self = transfer in transfer
+self.sections =['spectro', 'fcam', 'gcam', 'sos', 'apogee', 'quickred']
 for mirror.section in self.sections:
     mirror.env = self.config.options.get(mirror.section,'env_copy')
     mirror.set_location_from_env()

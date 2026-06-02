@@ -257,20 +257,19 @@ class Transfer:
             self.stage = 'mirror'
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
-            print(f"mirror = Mirror(staging={self.config.staging}, observatory={self.config.observatory}, mode={self.config.mode}, mjd={self.mjd}, dir={self.logging.dir}, verbose={self.verbose})")
-            """mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if mirror.ready:
                 for mirror.section in self.sections:
                     mirror.env = self.config.options.get(mirror.section,'env_copy')
                     mirror.set_location_from_env()
                     mirror.append_item()
-                mirror.set_manifest()
+                """mirror.set_manifest()
                 mirror.execute_transfer()
                 if mirror.transfer:
                     mirror.wait()
                     mirror.write_task_file()
                     mirror.done()
-                else: self.ready = False
+                else: self.ready = False"""
             else: self.ready = False
 
             if self.ready: self.summary.save(stage=self.stage, status='success')
