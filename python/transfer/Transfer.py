@@ -272,7 +272,7 @@ class Transfer:
                 else: self.ready = False"""
             else: self.ready = False
 
-            if self.ready: self.summary.save(stage=self.stage, status='success')
+            """if self.ready: self.summary.save(stage=self.stage, status='success')
             else:
                 logger.critical("ERROR! Globus is not ready for MIRROR")
                 self.summary.save(stage=self.stage, status='failure')"""
