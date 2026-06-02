@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+from transfer import Transfer, Argument
+
+arg = Argument('transfer')
+options = arg.options
+options.observatory = observatory = 'lco'
+options.ini_mode = mode = 'mos'
+options.log_dir = 'log/%s' % mode
+transfer = Transfer(options = options)
+transfer.set_config()
+transfer.set_logging()
+if transfer.logging.ready:
+    program = "%s_%s" % (arg.program, mode)
+    transfer.set_process(program=program)
+    if transfer.process.ready:
+        transfer.set_sections()
+        transfer.run_mirror()
+
+"""
+transfer_lco_mirror -m 61180 -v
+"""
