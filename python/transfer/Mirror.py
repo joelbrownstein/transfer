@@ -37,8 +37,8 @@ class Mirror:
     
     def set_stage(self, observatory=None, mode=None):
         self.stage = "transfer.%s" % observatory if observatory else "transfer"
+        if not self.identifier: self.identifier = self.stage
         self.stage += ".%s.mirror" % mode if mode else ""
-        if self.mjd and not self.identifier: self.identifier = "%s.%r" % (self.stage, self.mjd)
 
     def set_public(self):
         self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
