@@ -257,7 +257,7 @@ class Transfer:
             self.stage = 'mirror'
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
-            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if mirror.ready:
                 for mirror.section in self.sections:
                     mirror.env = self.config.options.get(mirror.section,'env_copy')
