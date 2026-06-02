@@ -9,8 +9,8 @@ from .Globus import Globus
 from .Globus_cli import Globus_cli
 from .Rclone import Rclone
 from .Backup import Backup
+from .Mirror import Mirror
 from .Copy import Copy
 from .Sync import Sync
 from .Transfer import Transfer
 from .GitHub import GitHub
-from .Mirror import Mirror
