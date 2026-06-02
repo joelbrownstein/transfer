@@ -282,6 +282,10 @@ class Mirror:
             else:
                 self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
         
+    def set_location_from_env(self):
+        try: self.location = environ[self.env]
+        except: self.location = None
+
     def execute_transfer(self):
         if not self.manifest_only:
             if self.item:                    

@@ -260,7 +260,10 @@ class Transfer:
             print(f"mirror = Mirror(staging={self.config.staging}, observatory={self.config.observatory}, mode={self.config.mode}, mjd={self.mjd}, dir={self.logging.dir}, verbose={self.verbose})")
             """mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, identifier=mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if mirror.ready:
-                mirror.append_item()
+                for mirror.section in self.sections:
+                    mirror.env = self.config.options.get(mirror.section,'env_copy')
+                    mirror.set_location_from_env()
+                    mirror.append_item()
                 mirror.set_manifest()
                 mirror.execute_transfer()
                 if mirror.transfer:
