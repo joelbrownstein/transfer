@@ -30,7 +30,6 @@ class Mirror:
         self.set_public()
         self.set_base_dir()
         self.set_user()
-        self.set_label()
         self.set_dir()
         self.set_file()
         self.set_logger()
@@ -77,8 +76,6 @@ class Mirror:
             else:
                 self.info_message(message = "nonexistent directory %r" % self.dir[dir])
                 self.dir[dir] = None
-
-    def set_label(self):
         
     def set_file(self):
         self.file = {dir: None for dir in self.dir.keys()}
