@@ -166,9 +166,10 @@ class Mirror:
                 
             try:
                 parts = self.file['manifest'].split('sdsswork/',1)
-                location = join('sdsswork', parts[1]) if len(parts) == 2 else None
+                destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
+                self.manifest['location'] = location
                 self.manifest['source'] = self.file['manifest']
-                self.manifest['destination'] = join(environ['TRANSFER_MIRROR_IPL_DIR'], location)
+                self.manifest['destination'] = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
             except: self.manifest['source'] = self.manifest['destination'] = None
 
