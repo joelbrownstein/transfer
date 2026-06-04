@@ -268,10 +268,10 @@ class Transfer:
                 """mirror.execute_transfer()
                 if mirror.transfer:
                     mirror.wait()
-                    mirror.write_task_file()"""
+                    mirror.write_task_file()
                 else:
                     message = "ERROR! Globus failure to TRANSFER"
-                    self.ready = False
+                    self.ready = False"""
                 mirror.done()
             else:
                 message = "ERROR! Globus is not ready for MIRROR"
