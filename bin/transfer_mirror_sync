@@ -15,6 +15,7 @@ def mirror_sync(options = None):
     else:
         if options.mjd: print("SYNC MJD %r> Not ready!" % options.mjd)
         else: print("SYNC> Not ready!")
+    return mirror
 
 """
 debug = True
@@ -27,7 +28,7 @@ if debug:
 #/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/users/sdssadmin/transfer/mirror/manifest/sdsswork/data/fcam/lco/61180/manifest.transfer.lco.61180.json
 debug = True
 if debug:
-    options.identifier = "sdsswork_data_fcam_lco"
+    options.observatory = "lco"
     options.location = 'sdsswork/data/fcam/lco'
     options.mjd = 61180
     options.verbose = True
@@ -35,7 +36,7 @@ if debug:
 
 if options.mjdlist:
     for options.mjd in options.mjdlist: sync_mirror(options = options)
-else: mirror_sync(options = options)
+else: mirror = mirror_sync(options = options)
 
 """
 transfer_mirror_sync -i dr8_spectro_data -m 53450 -l dr8/sdss/spectro/data -v

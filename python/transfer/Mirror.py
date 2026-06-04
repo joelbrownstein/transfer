@@ -12,12 +12,12 @@ class Mirror:
     
     def __init__(self, options=None, staging=None, observatory=None, mode=None, process=None, logger=None, log_dir=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, sync = None):
         self.staging = staging
-        self.observatory = observatory
         self.mode = mode
         self.process = process
         self.logger = logger
         self.log_dir = log_dir
         self.identifier = options.identifier if options else identifier
+        self.observatory = options.observatory if options else observatory
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
