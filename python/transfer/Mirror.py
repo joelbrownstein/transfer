@@ -162,7 +162,7 @@ class Mirror:
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-            except as Exception e:
+            except Exception as e:
                 self.error_message("Manifest aborted. %r" % e)
                 self.manifest = None
 
