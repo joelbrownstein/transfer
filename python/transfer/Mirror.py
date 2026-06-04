@@ -155,7 +155,8 @@ class Mirror:
 
             try:
                 directory, file = split(self.file['manifest'])
-                source_manifest = join(directory, location, file)
+                manifest_dir = join(directory, location)
+                source_manifest = join(manifest_dir, file)
                 message = "source_manifest=%r" % source_manifest
                 self.info_message()
                 if self.verbose: print("MANIFEST> %s" % message)
@@ -181,15 +182,20 @@ class Mirror:
                             }
                         elif entity in dirs:
                             self.manifest['locations'][location] = getmtime(path)
-                    
-                if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
-
-                with open(self.manifest['source'], 'w') as file:
-                    dump(self.manifest, file, indent=4)
-                message = "CREATE %(source)s" % self.manifest
-                self.info_message()
-                if self.verbose: print("MANIFEST> %s" % message)
+                try:
+                    if manifest_dir and not exists(manifest_dir): makedirs(manifest_dir)
+                    with open(self.manifest['source'], 'w') as file:
+                        dump(self.manifest, file, indent=4)
+                    message = "CREATE %(source)s" % self.manifest
+                    self.info_message()
+                    if self.verbose: print("MANIFEST> %s" % message)
+                except Exception as e:
+                    message = "File write error. %r" % e
+                    self.error_message(message)
+                    if self.verbose: print("MANIFEST> %s" % message)
+                    self.manifest = None
                 
+            if self.manifest:
                 label = "manifest-%r" % self.mjd if self.mjd else "manifest"
                 self.item[label] = {
                     'source': self.manifest['source'],
