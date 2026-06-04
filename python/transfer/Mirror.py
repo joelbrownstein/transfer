@@ -149,13 +149,13 @@ class Mirror:
             if not exists(source_dir): return
             
             message = "location=%r" % location
-            self.info_message()
+            self.info_message(message)
             if self.verbose: print("MANIFEST> %s" % message)
             
 
             try:
                 directory, file = split(self.file['manifest'])
-                manifest_dir = join(directory, location)
+                manifest_dir = join(directory, self.location)
                 source_manifest = join(manifest_dir, file)                
                 parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
@@ -183,7 +183,7 @@ class Mirror:
                     with open(self.manifest['source'], 'w') as file:
                         dump(self.manifest, file, indent=4)
                     message = "CREATE %(source)s" % self.manifest
-                    self.info_message()
+                    self.info_message(message)
                     if self.verbose: print("MANIFEST> %s" % message)
                 except Exception as e:
                     message = "File write error. %r" % e
@@ -217,7 +217,7 @@ class Mirror:
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
                 message = "manifest path=%(manifest)r" % self.file
-                self.info_message()
+                self.info_message(message)
                 if self.verbose: print("SYNC> %s" % message)
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
