@@ -152,12 +152,19 @@ class Mirror:
             self.info_message()
             if self.verbose: print("MANIFEST> %s" % message)
             
+            source_manifest = join(self.file['manifest'], location)
+            message = "source_manifest=%r" % source_manifest
+            self.info_message()
+            if self.verbose: print("MANIFEST> %s" % message)
+
             try:
                 parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-            except: self.manifest = None
+            except as Exception e:
+                self.error_message("Manifest aborted. %r" % e)
+                self.manifest = None
 
             if self.manifest:
                 for root, dirs, files in walk(source_dir):
