@@ -33,7 +33,7 @@ class Mirror:
         self.set_dir()
         self.set_file()
         self.set_logger()
-        self.set_options(label=self.identifier, sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True):
+        self.set_options(label=self.identifier, sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
         self.set_globus_cli()
     
     def set_stage(self, observatory=None, mode=None):
