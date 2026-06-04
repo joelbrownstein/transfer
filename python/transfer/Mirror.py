@@ -33,7 +33,7 @@ class Mirror:
         self.set_dir()
         self.set_file()
         self.set_logger()
-        self.set_options(sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
+        self.set_options(sync='mtime', preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
         self.set_globus_cli()
     
     def set_stage(self, observatory=None, mode=None):
@@ -156,11 +156,7 @@ class Mirror:
             try:
                 directory, file = split(self.file['manifest'])
                 manifest_dir = join(directory, location)
-                source_manifest = join(manifest_dir, file)
-                message = "source_manifest=%r" % source_manifest
-                self.info_message()
-                if self.verbose: print("MANIFEST> %s" % message)
-                
+                source_manifest = join(manifest_dir, file)                
                 parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
