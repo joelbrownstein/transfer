@@ -148,7 +148,7 @@ class Mirror:
             source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
-            self.info_message("Pre-flight: Getting directory timestamps and symlinks...")
+            self.info_message("MANIFEST> source=%r" % source)
             self.manifest = {'source': None, 'destination': None, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
 
             for root, dirs, files in walk(source_dir):
@@ -174,7 +174,7 @@ class Mirror:
 
             with open(self.manifest['source'], 'w') as file:
                 dump(self.manifest, file, indent=4)
-            self.info_message("Pre-flight Manifest packaged: %(source)s" % self.manifest)
+            self.info_message("MANIFEST> CREATE %(source)s" % self.manifest)
             
             label = "manifest-%r" % self.mjd if self.mjd else "manifest"
             self.item[label] = {

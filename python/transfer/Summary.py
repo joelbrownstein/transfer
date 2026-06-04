@@ -15,7 +15,7 @@ class Summary:
 
     stages = OrderedDict([(stage, None) for stage in ['download', 'verify', 'copy', 'mirror', 'backup']])
     colors = {"failure":"text-error", "incomplete":"text-warning","success":"text-success"}
-    colors['on sas'] = colors['cita'] = colors['nersc hpss'] = colors['nersc'] = colors['unam filemon'] = "text-success"
+    colors['jhu'] = colors['on sas'] = colors['cita'] = colors['nersc hpss'] = colors['nersc'] = colors['unam filemon'] = "text-success"
     todo_status = "incomplete"
     mode = 0o775
 

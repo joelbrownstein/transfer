@@ -257,7 +257,7 @@ class Transfer:
             self.stage = 'mirror'
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
-            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
             message = None
             if mirror.ready:
                 for mirror.section in self.sections:
@@ -265,10 +265,10 @@ class Transfer:
                     mirror.set_location_from_env()
                     mirror.append_item()
                     mirror.set_manifest()
-                mirror.execute_transfer()
+                """mirror.execute_transfer()
                 if mirror.transfer:
                     mirror.wait()
-                    mirror.write_task_file()
+                    mirror.write_task_file()"""
                 else:
                     message = "ERROR! Globus failure to TRANSFER"
                     self.ready = False
