@@ -148,41 +148,43 @@ class Mirror:
             source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
-            self.info_message("MANIFEST> source=%r" % source_dir)
-            self.manifest = {'source': None, 'destination': None, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-
-            for root, dirs, files in walk(source_dir):
-                for entity in dirs + files:
-                    path = join(root, entity)
-                    location = relpath(path, source_dir)
-                    
-                    if islink(path):
-                        self.manifest['symlinks'][location] = {
-                            'target': readlink(path),
-                            'mtime': lstat(path).st_mtime
-                        }
-                    elif entity in dirs:
-                        self.manifest['locations'][location] = getmtime(path)
-                
+            self.info_message("MANIFEST> location=%r" % location)
+            source_manifest = join(self.file['manifest'], location)
             try:
-                parts = self.file['manifest'].split('sdsswork/',1)
+                parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
-                self.manifest['location'] = location
-                self.manifest['source'] = self.file['manifest']
-                self.manifest['destination'] = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
-                if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
-            except: self.manifest['source'] = self.manifest['destination'] = None
+                destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
+                self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+            except: self.manifest = None
 
-            with open(self.manifest['source'], 'w') as file:
-                dump(self.manifest, file, indent=4)
-            self.info_message("MANIFEST> CREATE %(source)s" % self.manifest)
-            
-            label = "manifest-%r" % self.mjd if self.mjd else "manifest"
-            self.item[label] = {
-                'source': self.manifest['source'],
-                'destination': self.manifest['destination'],
-                'recursive': False
-            }
+            if self.manifest:
+                for root, dirs, files in walk(source_dir):
+                    for entity in dirs + files:
+                        path = join(root, entity)
+                        location = relpath(path, source_dir)
+                        
+                        if islink(path):
+                            self.manifest['symlinks'][location] = {
+                                'target': readlink(path),
+                                'mtime': lstat(path).st_mtime
+                            }
+                        elif entity in dirs:
+                            self.manifest['locations'][location] = getmtime(path)
+                    
+                if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
+
+                with open(self.manifest['source'], 'w') as file:
+                    dump(self.manifest, file, indent=4)
+                message = "MANIFEST> CREATE %(source)s" % self.manifest
+                self.info_message()
+                if self.verbose: print(message)
+                
+                label = "manifest-%r" % self.mjd if self.mjd else "manifest"
+                self.item[label] = {
+                    'source': self.manifest['source'],
+                    'destination': self.manifest['destination'],
+                    'recursive': False
+                }
         else: self.manifest = None
 
     def set_item_for_sync(self):
