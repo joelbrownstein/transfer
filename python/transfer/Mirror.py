@@ -25,7 +25,7 @@ class Mirror:
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.item = self.section = None
-        self.set_stage(observatory=observatory,mode=mode)
+        self.set_stage(observatory=self.observatory,mode=mode)
         self.set_sync(sync = sync)
         self.set_public()
         self.set_base_dir()
