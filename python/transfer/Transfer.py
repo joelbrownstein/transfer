@@ -258,24 +258,29 @@ class Transfer:
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            message = None
             if mirror.ready:
                 for mirror.section in self.sections:
                     mirror.env = self.config.options.get(mirror.section,'env_copy')
                     mirror.set_location_from_env()
                     mirror.append_item()
-                """mirror.set_manifest()
-                mirror.execute_transfer()
-                if mirror.transfer:
-                    mirror.wait()
-                    mirror.write_task_file()
-                    mirror.done()
-                else: self.ready = False"""
-            else: self.ready = False
-
-            """if self.ready: self.summary.save(stage=self.stage, status='success')
+                    mirror.set_manifest()
+                    mirror.execute_transfer()
+                    if mirror.transfer:
+                        mirror.wait()
+                        mirror.write_task_file()
+                    else:
+                        message = "ERROR! Globus failure to TRANSFER"
+                        self.ready = False
+                mirror.done()
             else:
-                logger.critical("ERROR! Globus is not ready for MIRROR")
-                self.summary.save(stage=self.stage, status='failure')"""
+                message = "ERROR! Globus is not ready for MIRROR"
+                self.ready = False
+
+            if self.ready: self.summary.save(stage=self.stage, status='success')
+            else:
+                if message: logger.critical(message)
+                self.summary.save(stage=self.stage, status='failure')
 
 
     def run_mirror0(self):
