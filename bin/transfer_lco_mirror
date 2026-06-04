@@ -18,6 +18,7 @@ if transfer.logging.ready:
     transfer.set_process(program=program)
     if transfer.process.ready:
         transfer.set_sections()
+        transfer.set_summary(mode = mode)
         transfer.run_mirror()
 
 """
