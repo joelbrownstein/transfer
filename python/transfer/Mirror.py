@@ -1,4 +1,4 @@
-from transfer import Globus_cli, Logging
+from transfer import Globus, Logging
 from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
 from os.path import join, exists, isdir, relpath, split, getmtime, islink, lexists
 from collections import OrderedDict
@@ -34,7 +34,7 @@ class Mirror:
         self.set_file()
         self.set_logger()
         self.set_options(sync='mtime', preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
-        self.set_globus_cli()
+        self.set_globus()
     
     def set_stage(self, observatory=None, mode=None):
         self.stage = "transfer.%s" % observatory if observatory else "transfer"
@@ -87,14 +87,14 @@ class Mirror:
                 else:
                     self.file[file] = join(self.dir[file], "%s.%s.json" % (prefix, self.identifier))
 
-    def set_globus_cli(self):
+    def set_globus(self):
         if not self.manifest_only:
-            self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
-            self.ready = self.globus_cli.ready
+            self.globus = Globus(logger = self.logger, verbose = self.verbose)
+            self.ready = self.globus.ready
             self.set_active_user()
             self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
         else:
-            self.globus_cli = None
+            self.globus = None
             self.ready = True
             self.active_user = None
             self.info_message(message = "ready=%r for manifest_only=%r" % (self.ready, self.manifest_only))
@@ -311,8 +311,8 @@ class Mirror:
     def execute_transfer(self):
         if not self.manifest_only:
             if self.item:                    
-                self.globus_cli.execute_transfer(items = self.item, options = self.options)
-                self.transfer = self.globus_cli.task
+                self.globus.execute_transfer(items = self.item, options = self.options)
+                self.transfer = self.globus.task
             else:
                 self.transfer = None
                 self.info_message(message = "no items to transfer")
@@ -342,19 +342,19 @@ class Mirror:
     
     def set_active_user(self):
         if self.ready:
-            self.globus_cli.set_whoami()
-            whoami = self.globus_cli.whoami
+            self.globus.set_whoami()
+            whoami = self.globus.whoami
             try:
                 self.active_user = "%(username)s <%(email)s>" % whoami if whoami else None
             except: self.active_user = None
         else: self.active_user = None
 
     def wait(self):
-        if self.globus_cli:
-            self.globus_cli.wait()
-            self.task = self.globus_cli.task
-            self.transfer = self.globus_cli.task  
-            self.status = self.globus_cli.status
+        if self.globus:
+            self.globus.wait()
+            self.task = self.globus.task
+            self.transfer = self.globus.task  
+            self.status = self.globus.status
             self.ready = self.status == "SUCCEEDED"
 
     def write_sync_file(self):

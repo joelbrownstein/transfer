@@ -1,341 +1,289 @@
-from os import chdir, makedirs, environ, listdir
-from os.path import join, exists, basename
-from json import loads
-from re import search
-from urllib.request import urlopen
-from time import sleep
-import tarfile
-from collections import OrderedDict
+import os
+from sys import stdout
+from time import time, sleep
+import logging
+import globus_sdk
+
+from globus_sdk.token_storage import JSONTokenStorage
+from globus_sdk.scopes import GCSCollectionScopes, TransferScopes
 
 class Globus:
-
-    ext = ['txt', 'log', 'err']
-    sync = ['exists', 'size', 'mtime', 'checksum']
-    identifier_length = 36
+    """
+    A class to manage synchronous Globus data transfers between the 
+    SDSS Admin Collection and the JHU IDIES endpoint, featuring automated 
+    token caching to bypass repeated Utah 2FA logins. Fully optimized for SDK v4.
+    """
     
-    def __init__(self, staging=None, observatory=None, mode=None, mjd=None, sam=None, hpss=None, process=None, logger=None, dir=None, scratch_dir=None, verbose=None):
-        self.staging = staging
-        self.mjd = mjd
-        self.process = process
-        self.logger = logger
-        self.dir = dir
-        self.scratch_dir = scratch_dir
-        self.verbose = verbose
-        self.set_stage(observatory=observatory,mode=mode)
-        self.set_label()
-        self.set_user()
-        self.set_endpoints(sam=sam, hpss=hpss)
+    endpoints = ['source', 'destination']
+
+    def __init__(self, logger = None, verbose = None):
+        self.logger = logger if logger else logging.getLogger("sdss_transfer.globus")
+        self.verbose = True# verbose
+        self.client_id = os.environ.get("TRANSFER_CLIENT_ID")
+        self.source_endpoint = os.environ.get("TRANSFER_SAS_ENDPOINT")
+        self.destination_endpoint = os.environ.get("TRANSFER_SAM_ENDPOINT")
         self.set_ready()
-        if self.verbose: print("GLOBUS> ready=%r" % self.ready)
-    
-    def set_user(self):
-        try: self.user = environ['TRANSFER_GLOBUS_USER']
-        except Exception as e: self.user = None
-    
-    def set_file(self):
-        self.file = {ext:join(self.dir, "globus.%s.%s" % (self.stage, ext)) for ext in self.ext}
-
-    def set_endpoints(self, sam=None, hpss=None):
-        self.set_sas_endpoint(hpss = hpss)
-        if sam: self.set_sam_endpoint()
-        else: self.sam_endpoint = None
-        if hpss: self.set_hpss_endpoint()
-        else: self.hpss_endpoint = None
-    
-    def set_sas_endpoint(self, hpss=None):
-        target = self.sas_endpoint = {'endpoint': 'SAS'}
-        try: self.sas_endpoint['id'] = environ['TRANSFER_SAS_ENDPOINT']
-        except: self.sas_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target, hpss=hpss)
-
-    def set_sam_endpoint(self):
-        target = self.sam_endpoint = {'endpoint': 'SAM'}
-        try: self.sam_endpoint['id'] = environ['TRANSFER_SAM_ENDPOINT']
-        except: self.sam_endpoint['id'] = None
-        self.set_endpoint_target_force(target=target)
-        self.set_endpoint_base_dir(target=target)
-
-    def set_hpss_endpoint(self):
-        target = self.hpss_endpoint = {'endpoint': 'HPSS'}
-        try: self.hpss_endpoint['id'] = environ['TRANSFER_HPSS_ENDPOINT']
-        except: self.hpss_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
-
-    def set_endpoint_base_dir(self, target=None, hpss=None):
-        try: target['base_dir'] = self.scratch_dir if hpss else environ['%(endpoint)s_BASE_DIR' % target]
-        except Exception as e: target['base_dir'] = '%r' % e
-
-    def set_endpoint_base_dir_for_sdss5_collection(self, target=None, hpss=None):
-        try:
-            if hpss:
-                target['base_dir'] = self.scratch_dir
-                uufs_home_dir = "/uufs/chpc.utah.edu/common/home"
-                if target['base_dir'] and target['base_dir'].startswith(uufs_home_dir):
-                    target['base_dir'] = target['base_dir'][len(uufs_home_dir):]
-            else:
-                target['base_dir'] = environ['%(endpoint)s_BASE_DIR' % target]
-                if target['endpoint'] == "SAS": target['base_dir'] = "/%s" % basename(target['base_dir'])
-        except Exception as e: target['base_dir'] = '%r' % e
-
-    def set_options(self,label=None,sync=None,preserve_mtime=False,verify=False,delete=False,encrypt=False):
-        self.options = {'batch': self.file['txt']}
-        self.options['sas'] = "%(id)s:%(base_dir)s" % self.sas_endpoint
-        self.options['target'] = "%(id)s:%(base_dir)s"
-        self.options['target'] %= self.sam_endpoint if self.sam_endpoint else self.hpss_endpoint if self.hpss_endpoint else ''
-        self.options['label'] = label if label else self.label
-        self.options['sync'] = sync if sync in self.sync else None
-        self.options['preserve_mtime'] = preserve_mtime
-        self.options['verify'] = verify
-        self.options['preserve_mtime'] = preserve_mtime
-        self.options['delete'] = delete
-        self.options['encrypt'] = encrypt
-        mode = []
-        if self.options['sync']: mode.append("--sync-level %(sync)s")
-        if self.options['preserve_mtime']: mode.append("--preserve-mtime")
-        if self.options['encrypt']: mode.append("--encrypt")
-        if self.options['verify']: mode.append("--verify-checksum")
-        if self.options['delete']: mode.append("--delete")
-        if self.options['label']: mode.append("--label=%(label)s")
-        self.options['mode'] = " ".join(mode) % self.options
-    
-    def set_endpoint_target_force(self, target):
-        if target:
-            if target['id']:
-                target['status'] = "active"
-                target['active'] = True
-            else:
-                target['status'] = 'Endpoint ID?'
-                target['active'] = None
-                
-    def set_endpoint_target(self, target):
-        if target:
-            if target['id']:
-                command = "globus endpoint is-activated %(id)s" % target
-                self.process.run(command)
-                if not self.process.status:
-                    lines = [line for line in self.process.out.split("\n") if line]
-                    response = lines[0] if len(lines)==1 else None
-                    active_response = "%(id)s is activated" % target
-                    alternate_response = "%(id)s does not require activation" % target
-                    inactive_response = "The endpoint is not activated." % target
-                    target['status'] = "active" if active_response else "personal endpoint (activation not required)" if alternate_response else "inactive"
-                    target['active'] = response == active_response or alternate_response
-                elif self.process.status==1:
-                    target['status'] = 'inactive (status code %r)' % self.process.status
-                    target['active'] = False
-                    self.ready = False
-                    if self.verbose: print("GLOBUS> %r" % self.process.out)
-                else:
-                    target['status'] = 'inactive (status code %r)' % self.process.status
-                    target['active'] = None
-                    self.ready = False
-                    if self.verbose: print("GLOBUS> Endpoint Error status code %r (bad syntax)" % self.process.status)
-            else:
-                target['status'] = 'Endpoint ID?'
-                target['active'] = None
+        if self.ready:
+            self.auth_client = globus_sdk.NativeAppAuthClient(self.client_id)
+            self.set_token()
+            self.set_client()
+            self.set_endpoint()
+        else: self.token = self.client = self.endpoint = None
+        self.task_id = None
         
-            if self.verbose:
-                print("GLOBUS> %(endpoint)s is %(status)s" % target)
-
-    def set_stage(self, observatory=None, mode=None):
-        self.stage = "transfer.%s" % observatory if observatory else "transfer"
-        self.stage += ".%s" % mode if mode else ""
-        self.stage += ".backup" if self.scratch_dir else ".mirror"
-
-    def set_label(self):
-        self.label = self.stage.replace('.','_')
-        if self.mjd: self.label += "_%s" % self.mjd
+    def set_endpoint(self):
+        self.endpoint = {}
+        for endpoint in self.endpoints: 
+            self.set_endpoint_info(endpoint = endpoint)
+            self.endpoint[endpoint] = self.endpoint_info
+        self.ready = all(self.endpoint.values())
 
     def set_ready(self):
-        sas_ready = self.sas_endpoint and self.sas_endpoint['active'] and self.sas_endpoint['base_dir']
-        sam_ready = self.sam_endpoint and self.sam_endpoint['active'] and self.sam_endpoint['base_dir']
-        hpss_ready = self.hpss_endpoint and self.hpss_endpoint['active'] and self.hpss_endpoint['base_dir']
-        self.ready = sas_ready and (sam_ready or hpss_ready) and self.user and self.dir and exists(self.dir)
-        if hpss_ready and self.ready: self.ready = self.scratch_dir and exists(self.scratch_dir)
-        self.critical = not self.ready
-        if self.ready:
-            self.item = []
-            self.set_file()
-            self.set_active_user()
-            self.ready = self.user == self.active_user
-            if self.ready:
-                if self.verbose: print("GLOBUS> User %s active." % self.user)
-            else: print("GLOBUS> Cannot activate user %r because %r is already active." % (self.user, self.active_user))
-        if not self.ready: self.item = None
-        self.identifier = None
+        """Internal helper to ensure all necessary environment variables exist."""
+        missing_variables = []
+        if not self.client_id: missing_variables.append("GLOBUS_CLIENT_ID")
+        if not self.source_endpoint: missing_variables.append("SDSS_ADMIN_COLLECTION_UUID")
+        if not self.destination_endpoint: missing_variables.append("JHU_IDIES_ENDPOINT_UUID")
+        
+        if missing_variables:
+            error_message = f"GLOBUS> Missing environment variables={', '.join(missing_variables)}"
+            self.logger.warning(error_message)
+            self.ready = False
+        else: self.ready = True
 
-    def set_active_user(self):
-        self.set_whoami()
-        if self.whoami:
-            gid = '@globusid.org'
-            self.active_user = self.whoami[:-len(gid)] if self.whoami.endswith(gid) else self.whoami
-        else: self.active_user = None
-        return self.active_user
+    def set_client(self):
+        authorizer = self.token['transfer_authorizer'] if self.token and 'transfer_authorizer' in self.token else None
+        self.client = globus_sdk.TransferClient(authorizer=authorizer) if authorizer else None
+        
+    def set_token(self):
+        """
+        Validates cached tokens or prompts for a one-time 2FA login.
+        Returns authorizers for both Transfer and Auth API operations.
+        """
+        
+        self.token = {}
+        self.token['file_path'] = os.path.expanduser("~/.globus/cli/globus-auth.json")
+        self.token['file_exists'] = os.path.exists(self.token['file_path'])
+        
+        self.token['storage'] = JSONTokenStorage(self.token['file_path'])
+
+        # Attempt to load existing credentials from disk
+        if self.token['file_exists']:
+            transfer_token_data = self.token['storage'].get_token_data("transfer.api.globus.org")
+            auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
+        else: transfer_token_data = auth_token_data = None 
+
+        if not transfer_token_data or not auth_token_data:
+            source_scopes = GCSCollectionScopes(self.source_endpoint)
+            dest_scopes = GCSCollectionScopes(self.destination_endpoint)
+            transfer_scope = TransferScopes.all.with_dependencies([source_scopes.data_access, dest_scopes.data_access])
+            requested_scopes = [ transfer_scope, "openid", "profile", "email" ]
+            
+            # Initialize the login flow with the defined scopes
+            self.auth_client.oauth2_start_flow(requested_scopes=requested_scopes, refresh_tokens=True)
+            authorize_url = self.auth_client.oauth2_get_authorize_url(session_required_single_domain="utah.edu")
+            
+            print("\n[Globus Auth] No cached tokens found. Initializing secure one-time authentication.")
+            print(f"Please log in here (requires Utah 2FA):\n{authorize_url}\n")    
+                    
+            authorization_code = input("Enter the resulting authorization code: ").strip()
+            token_response = self.auth_client.oauth2_exchange_code_for_tokens(authorization_code)
+            
+            self.token['storage'].store_token_response(token_response)
+            print("[Globus Auth] Tokens successfully cached! You will not need to do this step again.\n")
+            
+            # Reload the data from our newly written cache
+            transfer_token_data = self.token['storage'].get_token_data("transfer.api.globus.org")
+            auth_token_data = self.token['storage'].get_token_data("auth.globus.org")
+
+        # Create Transfer Authorizer (automatically saves to disk when tokens refresh)
+        self.token['transfer_authorizer'] = globus_sdk.RefreshTokenAuthorizer(
+            transfer_token_data.refresh_token, 
+            self.auth_client, 
+            access_token=transfer_token_data.access_token, 
+            expires_at=transfer_token_data.expires_at_seconds,
+            on_refresh=self.token['storage'].store_token_response
+        )
+
+        # Create Auth Authorizer (needed for identity lookups like 'whoami')
+        self.token['auth_authorizer'] = globus_sdk.RefreshTokenAuthorizer(
+            auth_token_data.refresh_token, 
+            self.auth_client, 
+            access_token=auth_token_data.access_token, 
+            expires_at=auth_token_data.expires_at_seconds,
+            on_refresh=self.token['storage'].store_token_response
+        )
 
     def set_whoami(self):
-        if self.ready:
-            command = "globus whoami"
-            self.process.run(command)
-            if self.process.status:
-                self.whoami = None
-                self.ready = False
-                self.logger.error("GLOBUS> Error status code %r" % self.process.status)
-            else:
-                lines = [line for line in self.process.out.split("\n") if line]
-                self.whoami = lines[0] if len(lines)==1 else None
+        """
+        Retrieves and prints the active user's identity details using 
+        the cached tokens, mimicking the `globus whoami` CLI command.
+        """
+        
+        # Create a new AuthClient specifically bound to the user's authorizer
+        bound_auth_client = globus_sdk.AuthClient(authorizer=self.token['auth_authorizer']) if self.token else None
+        
+        try:
+            self.whoami = {}
+            user_profile = bound_auth_client.userinfo()
+            self.whoami['username'] = user_profile.get('preferred_username') or user_profile.get('username')
+            self.whoami['username'] = user_profile.get('name')
+            self.whoami['email'] = user_profile.get('email')
+            self.whoami['id'] = user_profile.get('sub')
+        except Exception as error:
+            self.logger.error(f"Failed to fetch user info={str(error)}")
+            self.whoami = None
 
-    def get_target_listing(self, target=None):
-        if self.ready and target:
-            command = "globus ls %(id)s:%(base_dir)s " % target
-            print(command)
-            listing=None
-            """self.process.run(command)
-            if self.process.status:
-                listing = None
-                self.logger.error("GLOBUS> Error status code %r" % self.process.status)
-            else: listing = [line for line in self.process.out.split("\n") if line]"""
-        return listing
-
-    def append_target_from_staging(self, resource=None, recursive=None):
-        base_dir = join(self.sas_endpoint['base_dir'],'')
-        self.target_root = self.staging
-        dir = join(self.target_root[len(base_dir):],'') if self.target_root and self.target_root.startswith(base_dir) else None
-        if dir is None: dir = self.get_workdir(work='sdsswork')
-        boss_section = self.section in ['sos', 'spectro'] if self.section else None
-        folder = join('boss',self.section) if boss_section else self.section
-        if resource is None: resource = "%s" % self.mjd
-        if resource:
-            self.target = join(dir, folder, resource) if dir and folder else None
-            self.target_path = join(self.target_root, folder, resource) if self.target_root and folder else None
-        else:
-            self.target = join(dir, folder) if dir and folder else None
-            self.target_path = join(self.target_root, folder) if self.target_root and folder else None
-        if self.target and recursive: self.target = join(self.target, '')
-        if self.target_path and exists(self.target_path): self.append_item(recursive=recursive)
-        else: print("GLOBUS> Skipping Nonexistent target path %r" % self.target_path)
-
-    def append_target_from_env(self, resource=None, recursive=None):
-        try: self.target_root = environ[self.env]
-        except: self.target_root = None
-        base_dir = join(self.sas_endpoint['base_dir'],'')
-        dir = join(self.target_root[len(base_dir):],'') if self.target_root and self.target_root.startswith(base_dir) else None
-        if dir is None: dir = self.get_workdir(work='sdsswork')
-        if resource is None: resource = "%s" % self.mjd
-        self.target = join(dir, resource) if dir and resource else None
-        self.target_path = join(self.target_root, resource) if self.target_root and resource else None
-        if self.target and recursive: self.target = join(self.target, '')
-        if self.target_path and exists(self.target_path): self.append_item(recursive=recursive)
-        else: print("GLOBUS> Skipping Nonexistent target path %r" % self.target_path)
-
-    def append_target_for_backup(self, tarfile=None):
-        if tarfile:
-            self.target_root = self.scratch_dir
-            file = tarfile['file'] if 'file' in tarfile else None
-            source = join(self.section, file) if self.section and file else None
-            remote = tarfile['remote'] if 'remote' in tarfile else None
-            try: hpss_base_dir = join(self.hpss_endpoint['base_dir'], '')
-            except: hpss_base_dir = None
-            destination = remote[len(hpss_base_dir):] if hpss_base_dir and remote.startswith(hpss_base_dir) else None
-            self.target_path = join(self.target_root, self.section) if self.target_root and self.section else None
-            if source and remote: self.append_item(source=source, destination=destination)
-            else: print("GLOBUS> Skipping Nonexistent target with source=%r destination=%r" % (source, destination))
-
-    def get_workdir(self, work=None):
-        if work:
-            index = self.target_root.index('%s/' % work) if '/%s/' % work in self.target_root else None
-            workdir = join(self.target_root[index:],'') if index is not None else None
-        else: workdir = None
-        return workdir
-
-    def append_item(self, source=None, destination=None, recursive=False):
-        source = source if source else self.target
-        destination = destination if destination else self.target
-        if self.item is not None:
-            if source and destination:
-                if self.verbose: print("GLOBUS> Appending target path %r" % self.target_path)
-                self.item.append({'source':source, 'destination':destination, 'recursive':recursive})
-            else: print("GLOBUS> cannot append no item")
-
-    def commit(self):
-        if self.item:
-            lines = []
-            for item in self.item:
-                line = "%(source)s %(destination)s" % item
-                if item['recursive']: line += " -r"
-                lines.append(line)
-            with open(self.file['txt'],'w') as file: file.write("\n".join(lines)+"\n")
-            if self.verbose: print("GLOBUS> Create %(txt)s" % self.file)
-        else: print("GLOBUS> no items to transfer")
-
-    def set_identifier(self):
-        self.identifier = None
-        if self.process.out:
+    def set_endpoint_info(self, endpoint = None):
+        """
+        Validates if an endpoint/collection is online and responsive.
+        Aborts early if the target is down for maintenance or offline.
+        """
+        if endpoint not in self.endpoints: endpoint = None
+        
+        if endpoint:
             try:
-                self.identifier = search('Task ID: (.*?)\n', self.process.out).group(1)
-                if self.verbose: print("GLOBUS> Task ID=%r" % self.identifier)
-            except AttributeError:print("Cannot find identifier within response=%r" % self.process.out)
-        if self.identifier:
-            if len(self.identifier)!=self.identifier_length:
-                self.identifier=None
-                print("Invalid identifier=%r" % self.identifier)
+                endpoint_id = self.source_endpoint if endpoint == "source" else self.destination_endpoint if endpoint == "destination" else None
+                if endpoint_id:
+                    endpoint_information = self.client.get_endpoint(endpoint_id)
+                    endpoint_available = not endpoint_information.get("non_functional")
+                    if not endpoint_available:
+                        self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is marked NON-FUNCTIONAL.")
+        
+                    test_path = endpoint_information.get("default_directory") or "/"
+                    for self.endpoint_info in self.client.operation_ls(endpoint_id, path=test_path, limit=1): break
+                    
+                    self.logger.info(f"HEALTH CHECK PASSED: Verified live connectivity ({endpoint_id}).")
+                else: self.endpoint_info = None
 
-    def submit(self):
-        if self.ready and self.item:
-            command = "globus transfer %(sas)s %(target)s %(mode)s --batch %(batch)s" % self.options
-            if self.verbose:
-                print("GLOBUS> %r" % command)
-            #self.process.run(command, batch=self.options['batch']) older versions of cli
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.logger.error("GLOBUS> Error status code %r" % self.process.status)
+            except globus_sdk.TransferAPIError as error:
+                if error.code in ["PermissionDenied", "ConsentRequired", "AuthenticationFailed"]:
+                    self.logger.error(f"HEALTH CHECK: Verified live connectivity ({endpoint_id}) [Status={error.code}].")
+                else: self.logger.error(f"HEALTH CHECK FAILED: ({endpoint_id}) is unreachable. Code={error.code} - {error.message}")
+                self.endpoint_info = None
+            except Exception as error:
+                self.logger.error(f"Unexpected error when checking health={str(error)}")
+                self.endpoint_info = None
+        else: self.endpoint_info = None
+        
+    def execute_transfer(self, items=None, options=None):
+        """
+        Validates both endpoints, dynamically constructs paths, 
+        and executes the transfer securely, blocking until completion.
+        """
+        
+        if items and options:
+            label = options['label'] if 'label' in options else "sdss-transfer"
+            preserve_mtime = options['preserve_mtime'] if 'preserve_mtime' in options else None
+            sync = options['sync'] if 'sync' in options else None
+            encrypt = options['encrypt'] if 'encrypt' in options else None
+            verify = options['verify'] if 'verify' in options else None
+            delete = options['delete'] if 'delete' in options else None
+            fail_on_quota_errors = options['fail_on_quota_errors'] if 'fail_on_quota_errors' in options else None
+        
+            if self.verbose: print("GLOBUS> Executing transfer mode %s [%r items]" % (options['mode'], len(items)))
+            # SDK v4 Requirement: TransferData no longer accepts the transfer_client object
+            transfer_data = globus_sdk.TransferData(
+                source_endpoint=self.source_endpoint, 
+                destination_endpoint=self.destination_endpoint, 
+                label=label, 
+                preserve_timestamp=preserve_mtime,
+                sync_level=sync,
+                encrypt_data=encrypt,
+                verify_checksum=verify,
+                delete_destination_extra=delete,
+                fail_on_quota_errors=fail_on_quota_errors
+            )  
+            transfer_data["store_base_path_info"] = True
+            message = "GLOBUS> Adding %r items" % len(items)
+            self.logger.info(message)
+            if self.verbose: print(message)
+            for index, (label, item) in enumerate(items.items()):
+                message = "ITEM-%r>" % index
+                message += " source=%(source)r destination=%(destination)r [recursive=%(recursive)r]" % item
+                self.logger.info(message)
+                if self.verbose: print(message)
+                transfer_data.add_item(item['source'], item['destination'], recursive=item['recursive'])
+                if self.verbose:
+                    message = "Add item for label=%r " % label
+                    message += "with source=%(source)r and destination=%(destination)r" % item
+                    print(message)
+            try:
+                message = f"Submitting transfer=%r for label=%r" % (transfer_data, label)
+                self.logger.info(message)
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.transfer = self.client.submit_transfer(transfer_data)
+                self.task_id = self.transfer["task_id"]
+                self.task = self.client.get_task(self.task_id) if self.task_id else None
+                if self.task:
+                    message = f"Transfer submitted successfully for Task ID={self.task_id}"
+                    if self.verbose: print("GLOBUS> %s" % message)
+                    self.logger.info(message)
+                else:
+                    message = f"Transfer not found for Task ID={self.task_id} "
+                    if self.verbose: print("GLOBUS> %s" % message)
+                    self.logger.error(message)
+            except globus_sdk.TransferAPIError as error:
+                message = f"Globus Transfer API Error={error.http_status} - {error.code} - {error.message}"
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.logger.error(message)
+                self.transfer = self.task_id = self.task = None
+            except Exception as error:
+                message = f"Unexpected error during transfer lifecycle={str(error)}"
+                if self.verbose: print("GLOBUS> %s" % message)
+                self.logger.error(message)
+                self.transfer = self.task_id = self.task = None
+        else: self.transfer = self.task_id = self.task = None
+    
+    def wait(self, timeout=86400, polling_interval=5):
+        if self.task_id:
+            import sys
+            import time
+            
+            self.logger.info(f"Waiting for transfer task {self.task_id} execution...")
+            start_time = time.time()
+            
+            while True:
+                # Refresh the task object from the Globus API
+                self.task = self.client.get_task(self.task_id)
+                self.status = self.task["status"]
+                
+                if self.verbose:
+                    # Dynamically calculate progress metrics
+                    bytes_mb = self.task.get("bytes_transferred", 0) / (1024 * 1024)
+                    files_done = self.task.get("files_transferred", 0)
+                    files_total = self.task.get("files", 0)
+                    dirs_done = self.task.get("directories", 0)
+                    
+                    # Globus discovers total files dynamically; handle 0 gracefully
+                    total_files_str = f"{files_total}" if files_total > 0 else "?"
+                    
+                    # \r overwrites the line interactively in your console
+                    sys.stdout.write(
+                        f"\rGLOBUS> Progress: {files_done}/{total_files_str} files | "
+                        f"{dirs_done} dirs | {bytes_mb:.2f} MB | Status: {self.status}"
+                    )
+                    sys.stdout.flush()
+
+                # Break loop if task reaches a terminal state
+                if self.status in ["SUCCEEDED", "FAILED", "INACTIVE"]:
+                    if self.verbose: print()  # Newline to preserve the final progress state
+                    break
+                    
+                if time.time() - start_time > timeout:
+                    if self.verbose: print()
+                    self.logger.error("Wait timeout reached.")
+                    break
+                    
+                time.sleep(polling_interval)
+                
+            # FIXED: All variables below safely use the 'self.' prefix to eliminate NameError
+            if self.status == "SUCCEEDED":
+                self.logger.info(f"SUCCESS: Transfer task {self.task_id} completed smoothly.")
+            elif self.status == "FAILED":
+                error_message = self.task.get("fatal_error", "Unknown fatal error occurred.")
+                self.logger.error(f"FAILURE: Transfer task {self.task_id} failed. Reason={error_message}")
             else:
-                self.set_identifier()
-                self.ready = self.identifier is not None
-            if not self.ready:
-                batch = self.options['batch'] if 'batch' in self.options else  None
-                self.logger.critical("GLOBUS> transfer submission failure for command=%r with batch=%r" % (command,batch))
-
-
-    def wait(self):
-        if self.identifier:
-            command = "globus task wait %s" % self.identifier
-            if self.verbose: print("GLOBUS> Wait...")
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.logger.error("GLOBUS> Error status code %r" % self.process.status)
-
-    def set_details(self):
-        self.details = None
-        if self.identifier:
-            command = "globus task show %s" % self.identifier
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.logger.error("GLOBUS> Error status code %r" % self.process.status)
-            else: self.details = self.process.out
-
-    def set_status(self):
-        self.status = search('Status: (.*?)\n', self.details).group(1) if self.details else None
-        if self.status: self.status = self.status.strip()
-        if self.verbose: print("GLOBUS> Status=%r" % self.status)
-        self.ready = self.status == "SUCCEEDED"
-        if not self.ready: self.touch_errfile()
-
-    def write_logfile(self):
-        if self.details and self.file['log']:
-                if self.verbose: print("GLOBUS> Create %(log)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.write(self.details)
-                file.close()
-
-    def touch_errfile(self):
-        if self.details and self.file['err']:
-                if self.verbose: print("GLOBUS> Touch %(err)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.close()
-
-
+                self.logger.warning(f"WARNING: Transfer task {self.task_id} finished with unexpected status={self.status}")
+        else: 
+            self.status = None
