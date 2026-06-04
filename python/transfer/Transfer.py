@@ -254,17 +254,17 @@ class Transfer:
 
     def run_mirror(self):
         if self.mirror and self.ready:
-        self.stage = 'mirror'
-        self.logging.set_stage(stage=self.stage)
-        logger = self.logging.logger
-        mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
-        message = None
-        if mirror.ready:
-            for mirror.section in self.sections:
-                mirror.env = self.config.options.get(mirror.section,'env_copy')
-                mirror.set_location_from_env()
-                mirror.append_item()
-                mirror.set_manifest()
+            self.stage = 'mirror'
+            self.logging.set_stage(stage=self.stage)
+            logger = self.logging.logger
+            mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
+            message = None
+            if mirror.ready:
+                for mirror.section in self.sections:
+                    mirror.env = self.config.options.get(mirror.section,'env_copy')
+                    mirror.set_location_from_env()
+                    mirror.append_item()
+                    mirror.set_manifest()
                 """mirror.execute_transfer()
                 if mirror.transfer:
                     mirror.wait()
