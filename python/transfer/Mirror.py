@@ -148,7 +148,7 @@ class Mirror:
             source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
-            self.info_message("MANIFEST> source=%r" % source)
+            self.info_message("MANIFEST> source=%r" % source_dir)
             self.manifest = {'source': None, 'destination': None, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
 
             for root, dirs, files in walk(source_dir):
