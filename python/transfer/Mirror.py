@@ -148,8 +148,10 @@ class Mirror:
             source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
-            self.info_message("MANIFEST> location=%r" % location)
-            source_manifest = join(self.file['manifest'], location)
+            message = "location=%r" % location
+            self.info_message()
+            if self.verbose: print("MANIFEST> %s" % message)
+            
             try:
                 parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
@@ -175,9 +177,9 @@ class Mirror:
 
                 with open(self.manifest['source'], 'w') as file:
                     dump(self.manifest, file, indent=4)
-                message = "MANIFEST> CREATE %(source)s" % self.manifest
+                message = "CREATE %(source)s" % self.manifest
                 self.info_message()
-                if self.verbose: print(message)
+                if self.verbose: print("MANIFEST> %s" % message)
                 
                 label = "manifest-%r" % self.mjd if self.mjd else "manifest"
                 self.item[label] = {
@@ -201,7 +203,9 @@ class Mirror:
         
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
-                self.info_message("SYNC> manifest path=%(manifest)r" % self.file)
+                message = "manifest path=%(manifest)r" % self.file
+                self.info_message()
+                if self.verbose: print("SYNC> %s" % message)
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
                 except Exception as e:
