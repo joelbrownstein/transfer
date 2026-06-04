@@ -23,6 +23,14 @@ if debug:
     options.location = 'dr8/sdss/spectro/data'
     options.mjd = 53450
     options.verbose = True
+
+#/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/users/sdssadmin/transfer/mirror/manifest/sdsswork/data/fcam/lco/61180/manifest.transfer.lco.61180.json
+debug = True
+if debug:
+    options.identifier = "sdsswork_data_fcam_lco"
+    options.location = 'sdsswork/data/fcam/lco'
+    options.mjd = 61180
+    options.verbose = True
 """
 
 if options.mjdlist:

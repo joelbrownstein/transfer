@@ -192,7 +192,9 @@ class Mirror:
                     self.manifest = None
                 
             if self.manifest:
-                label = "manifest-%r" % self.mjd if self.mjd else "manifest"
+                label = "manifest-%s-" % self.section if self.section else "manifest-"
+                if self.mjd: label += "mjd-%r" % self.mjd
+                else: label += "item-%03d" % len(self.item)
                 self.item[label] = {
                     'source': self.manifest['source'],
                     'destination': self.manifest['destination'],
