@@ -194,7 +194,7 @@ class Globus_cli:
                 delete_destination_extra=delete,
                 fail_on_quota_errors=fail_on_quota_errors
             )  
-            transfer_data.additional_fields["store_base_path_info"] = True
+            transfer_data["store_base_path_info"] = True
             message = "GLOBUS> Adding %r items" % len(items)
             self.logger.info(message)
             if self.verbose: print(message)
