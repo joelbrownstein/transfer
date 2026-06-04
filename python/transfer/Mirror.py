@@ -1,6 +1,6 @@
 from transfer import Globus_cli, Logging
 from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
-from os.path import join, exists, isdir, relpath, getmtime, islink, lexists
+from os.path import join, exists, isdir, relpath, split, getmtime, islink, lexists
 from collections import OrderedDict
 from json import load, dump, dumps
 
@@ -154,7 +154,7 @@ class Mirror:
             
 
             try:
-                directory, file = os.path.split(self.file['manifest'])
+                directory, file = split(self.file['manifest'])
                 source_manifest = join(directory, location, file)
                 message = "source_manifest=%r" % source_manifest
                 self.info_message()
