@@ -30,10 +30,11 @@ class Mirror:
         self.set_public()
         self.set_base_dir()
         self.set_user()
+        self.set_label()
         self.set_dir()
         self.set_file()
         self.set_logger()
-        self.set_options(label=self.identifier, sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
+        self.set_options(sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
         self.set_globus_cli()
     
     def set_stage(self, observatory=None, mode=None):
@@ -77,6 +78,8 @@ class Mirror:
                 self.info_message(message = "nonexistent directory %r" % self.dir[dir])
                 self.dir[dir] = None
 
+    def set_label(self):
+        
     def set_file(self):
         self.file = {dir: None for dir in self.dir.keys()}
         for file in self.file.keys():
@@ -304,7 +307,7 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        self.options['label'] = label if label else self.identifier
+        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else self.identifier
         self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
