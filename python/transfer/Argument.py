@@ -63,6 +63,7 @@ def transfer_mirror_sync():
     parser.add_argument("-l", "--location", help="location directory", metavar="LOCATION")
     parser.add_argument("-o", "--observatory", action="store", dest="observatory", metavar="OBSERVATORY", help="Observatory")
     parser.add_argument("-m", "--mjd", help="Modified Julian Date (MJD)", type=int, metavar="MJD")
+    parser.add_argument("-S", "--sections", nargs='+', type=int, metavar="SECTIONS", help="raw data sections")
     parser.add_argument("-M", "--mjdlist", nargs='+', type=int, metavar="MJDLIST", help="Batch process ranges 'start end' or explicit MJDs list")
     parser.add_argument("-d", "--dryrun", help="dryrun",action="store_true")
     parser.add_argument("-v", "--verbose", help="verbose", action="store_true")

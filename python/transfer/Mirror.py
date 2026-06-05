@@ -103,7 +103,6 @@ class Mirror:
         if not self.logger:
             mode = "manifest" if self.manifest_only else None
             mode_word = "%s-only" % mode if mode else 'sync' if self.sync else 'transfer'
-            print("LOGGING> staging=%r [%s mode]" % (self.staging, mode_word))
             self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
             self.logger = self.logging.logger
         
