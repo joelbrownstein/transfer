@@ -28,7 +28,7 @@ transfers['lco']['fcam'] = 'fcam/lco'
 transfers['lco']['gcam'] = 'gcam/lco'
 transfers['lco']['spectro'] = 'boss/spectro/lco'
 transfers['lco']['sos'] = 'boss/sos/lco'
-transfers['lco']['quickred'] = 'apogee/quickred/apo'
+transfers['lco']['quickred'] = 'apogee/quickred/lco'
 transfers['lvm']['lvm'] = 'lvm/lco'
 transfers['lvm']['agcam'] = 'agcam/lco'
 """
