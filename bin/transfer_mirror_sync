@@ -16,21 +16,21 @@ def mirror_sync(options = None):
         if options.mjd: print("SYNC MJD %r> Not ready!" % options.mjd)
         else: print("SYNC> Not ready!")
     
-locations = {'apo': {}, 'lco': {}, 'lvm': {}}
-locations['apo']['apogee'] = 'apogee/apo'
-locations['apo']['fcam'] = 'fcam/apo'
-locations['apo']['gcam'] = 'gcam/apo'
-locations['apo']['spectro'] = 'boss/spectro/apo'
-locations['apo']['sos'] = 'boss/sos/apo'
-locations['apo']['quickred'] = 'apogee/quickred/apo'
-locations['lco']['apogee'] = 'apogee/lco'
-locations['lco']['fcam'] = 'fcam/lco'
-locations['lco']['gcam'] = 'gcam/lco'
-locations['lco']['spectro'] = 'boss/spectro/lco'
-locations['lco']['sos'] = 'boss/sos/lco'
-locations['lco']['quickred'] = 'apogee/quickred/apo'
-locations['lvm']['lvm'] = 'lvm/lco'
-locations['lvm']['agcam'] = 'agcam/lco'
+transfers = {'apo': {}, 'lco': {}, 'lvm': {}}
+transfers['apo']['apogee'] = 'apogee/apo'
+transfers['apo']['fcam'] = 'fcam/apo'
+transfers['apo']['gcam'] = 'gcam/apo'
+transfers['apo']['spectro'] = 'boss/spectro/apo'
+transfers['apo']['sos'] = 'boss/sos/apo'
+transfers['apo']['quickred'] = 'apogee/quickred/apo'
+transfers['lco']['apogee'] = 'apogee/lco'
+transfers['lco']['fcam'] = 'fcam/lco'
+transfers['lco']['gcam'] = 'gcam/lco'
+transfers['lco']['spectro'] = 'boss/spectro/lco'
+transfers['lco']['sos'] = 'boss/sos/lco'
+transfers['lco']['quickred'] = 'apogee/quickred/apo'
+transfers['lvm']['lvm'] = 'lvm/lco'
+transfers['lvm']['agcam'] = 'agcam/lco'
 """
 debug = True
 if debug:
@@ -50,10 +50,10 @@ if debug:
 
 if options.mjdlist:
     for options.mjd in options.mjdlist: sync_mirror(options = options)
-elif options.observatory and options.observatory in locations and options.sections:
+elif options.observatory and options.observatory in transfers and options.sections:
     sdsswork = "sdsswork/data/%s"
-    locations = [sdsswork % location for section, location in locations[options.observatory].items() if section in options.sections]
-    for options.location in locations[observatory]: sync_mirror(options = options)
+    locations = [sdsswork % location for section, location in transfers[options.observatory].items() if section in options.sections]
+    for options.location in locations: sync_mirror(options = options)
 else: mirror_sync(options = options)
 
 """
