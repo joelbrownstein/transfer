@@ -1,135 +1,331 @@
-from transfer import Process, Logging
-from os import chdir, makedirs, environ, listdir
-from os.path import join, exists, basename, isdir
-from json import loads
-from re import search
-from urllib.request import urlopen
-from time import sleep
-import tarfile
+from transfer import Globus, Logging
+from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
+from os.path import join, exists, isdir, relpath, split, getmtime, islink, lexists
 from collections import OrderedDict
+from json import load, dump, dumps
 
 class Mirror:
 
-    ext = ['txt', 'log', 'err']
-    sync = ['exists', 'size', 'mtime', 'checksum']
-    identifier_length = 36
-    program = 'pando'
-    staging = 'mirror_%s' % program
+    sync_options = ['exists', 'size', 'mtime', 'checksum']
+    label = 'jhu_ceph'
+    staging = 'mirror_%s' % label
     
-    def __init__(self, options=None, location=None, dryrun=None, verbose=None, logger = None):
+    def __init__(self, options=None, staging=None, observatory=None, mode=None, process=None, logger=None, log_dir=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, sync = None):
+        self.staging = staging
+        self.mode = mode
+        self.process = process
+        self.logger = logger
+        self.log_dir = log_dir
+        self.identifier = options.identifier if options else identifier
+        self.observatory = options.observatory if options else observatory
+        self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
+        self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
+        self.manifest_only = options.manifest_only if options and 'manifes_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
-        self.logger = logger
-        self.item = None
-        self.set_label()
-        self.set_dir()
+        self.item = self.section = None
+        self.set_stage(observatory=self.observatory,mode=mode)
+        self.set_sync(sync = sync)
+        self.set_public()
+        self.set_base_dir()
         self.set_user()
+        self.set_dir()
+        self.set_file()
         self.set_logger()
-        self.set_process()
-        self.set_endpoints()
-        self.set_ready()
-        self.info_message(message = "ready=%r" % self.ready)
+        self.set_options(sync='mtime', preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
+        self.set_globus()
     
+    def set_stage(self, observatory=None, mode=None):
+        self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
+        if not self.identifier:
+            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "transfer.lvm"
+        self.stage += ".%s.mirror" % mode if mode else ""
+
+    def set_public(self):
+        self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
+
+    def set_sync(self, sync = None):
+        if sync:
+            self.sync = {'timestamps': [], 'symlinks': [], 'count': {}}
+            self.manifest_only = True
+        else: self.sync = None
+        if self.manifest_only: self.save_manifest = True
+
+    def set_base_dir(self):
+        self.base_dir = {}
+        try:
+            self.base_dir['source'] = environ['SAS_BASE_DIR']
+            transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if self.public else "TRANSFER_MIRROR_IPL_DIR"
+            try: self.base_dir['destination'] = environ[transfer_mirror_dir]
+            except: self.base_dir = None
+        except: self.base_dir = None
+
     def set_dir(self):
-        try: self.dir = environ['SAM_LOGS_DIR']
-        except: self.dir = None
-        if self.dir and exists(self.dir):
-            if self.location:
-                self.dir = join(self.dir, self.location)
-                if not exists(self.dir): makedirs(self.dir)
-            self.info_message(message = "logging to %r" % self.dir)
-        else:
-            self.info_message(message = "nonexistent directory %r" % self.dir)
-            self.dir = None
-
+        self.dir = {'log': 'TRANSFER_MIRROR_LOG_DIR'}
+        if self.save_manifest: self.dir['manifest'] = 'TRANSFER_MIRROR_MANIFEST_DIR'
+        if not self.manifest_only: self.dir['task'] = 'TRANSFER_MIRROR_TASK_DIR'
+        if self.sync: self.dir['sync'] = 'TRANSFER_MIRROR_SYNC_DIR'
+        for dir, env in self.dir.items():
+            try: self.dir[dir] = self.log_dir if dir == 'log' and self.log_dir else environ[env] 
+            except: self.dir[dir] = None
+            if self.dir and self.dir[dir] and exists(self.dir[dir]):
+                if self.location:
+                    self.dir[dir] = join(self.dir[dir], self.location)
+                    if not exists(self.dir[dir]): makedirs(self.dir[dir])
+                self.info_message(message = "%s> %s" % (dir.upper(),self.dir[dir]))
+            else:
+                self.info_message(message = "nonexistent directory %r" % self.dir[dir])
+                self.dir[dir] = None
+        
     def set_file(self):
-        self.file = {ext:join(self.dir, "mirror.%s.%s" % (self.program, ext)) for ext in self.ext}
+        self.file = {dir: None for dir in self.dir.keys()}
+        for file in self.file.keys():
+            prefix = "mirror" if file == "log" else file
+            if self.dir and self.dir[file] and self.identifier:
+                if getattr(self, 'mjd', None):
+                    self.file[file] = join(self.dir[file], "%s.%s.%d.json" % (prefix, self.identifier, self.mjd))
+                else:
+                    self.file[file] = join(self.dir[file], "%s.%s.json" % (prefix, self.identifier))
 
-    def set_process(self):  self.process = Process(program = self.program, logger = self.logger, verbose = self.verbose)
-    def set_logger(self):
-        self.logging = Logging(staging = self.staging, observatory = self.program, dir = self.dir, verbose = self.verbose)
-        self.logger = self.logging.logger
+    def set_globus(self):
+        if not self.manifest_only:
+            self.globus = Globus(logger = self.logger, verbose = self.verbose)
+            self.ready = self.globus.ready
+            self.set_active_user()
+            self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
+        else:
+            self.globus = None
+            self.ready = True
+            self.active_user = None
+            self.info_message(message = "ready=%r for manifest_only=%r" % (self.ready, self.manifest_only))
+        
+    def set_logger(self):        
+        if not self.logger:
+            mode = "manifest" if self.manifest_only else None
+            mode_word = "%s-only" % mode if mode else 'sync' if self.sync else 'transfer'
+            self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
+            self.logger = self.logging.logger
         
     def set_user(self):
         try: self.user = environ['TRANSFER_GLOBUS_USER']
         except Exception as e: self.user = None
-    
-    def set_endpoints(self):
-        self.set_sas_endpoint()
-        self.set_sam_endpoint()
-    
-    def set_sas_endpoint(self):
-        target = self.sas_endpoint = {'endpoint': 'SAS'}
-        try: self.sas_endpoint['id'] = environ['TRANSFER_SAS_ENDPOINT']
-        except: self.sas_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
 
-    def set_sam_endpoint(self):
-        target = self.sam_endpoint = {'endpoint': 'SAM'}
-        try: self.sam_endpoint['id'] = environ['TRANSFER_SAM_ENDPOINT']
-        except: self.sam_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
+    def append_item(self, label = None, recursive = None):
+        if self.item is None: self.item = OrderedDict()
+        if not label:
+            label = "%s-" % self.section if self.section else ""
+            if self.mjd: label += "mjd-%r" % self.mjd
+            else: label += "item-%03d" % len(self.item)
+        if self.base_dir and self.location:
+            source = join(self.base_dir['source'], self.location)
+            destination = join(self.base_dir['destination'], self.location)
+            if self.mjd:
+                mjd = str(self.mjd)
+                source = join(source,mjd)
+                destination = join(destination,mjd)
+            has_source = exists(source)
+            if has_source:
+                if isdir(source):
+                    if not source.endswith('/'): source += '/'
+                    if not destination.endswith('/'): destination += '/'
+                    if recursive is None: recursive = True
+                else: recursive = False
+                item = {'source':source, 'destination':destination, 'recursive':recursive}
+                self.item[label] = item
+            else: self.error_message("Nonexistent source path=%r" % source)
 
-    def set_hpss_endpoint(self):
-        target = self.hpss_endpoint = {'endpoint': 'HPSS'}
-        try: self.hpss_endpoint['id'] = environ['TRANSFER_HPSS_ENDPOINT']
-        except: self.hpss_endpoint['id'] = None
-        self.set_endpoint_target(target=target)
-        self.set_endpoint_base_dir(target=target)
+    def set_manifest(self):
+        """
+        PRE-FLIGHT (runs on source): Scans the local directory tree, calculates relative
+        paths and their Mtime, dumps a JSON file to a designated manifest directory,
+        and appends it to the Globus transfer list to sync alongside the data.
+        """
+        if self.save_manifest:
+            if not self.base_dir or not self.location or self.item is None: return
+            
+            location = join(self.location, str(self.mjd)) if self.mjd else self.location                
+            source_dir = join(self.base_dir['source'], location)
+            if not exists(source_dir): return
+            
+            message = "location=%r" % location
+            self.info_message(message)
+            if self.verbose: print("MANIFEST> %s" % message)
+            
 
-    def set_endpoint_base_dir(self, target=None, hpss=None):
-        try: target['base_dir'] = self.scratch_dir if hpss else environ['%(endpoint)s_BASE_DIR' % target]
-        except Exception as e: target['base_dir'] = '%r' % e
+            try:
+                directory, file = split(self.file['manifest'])
+                manifest_dir = join(directory, self.location)
+                source_manifest = join(manifest_dir, file)                
+                parts = source_manifest.split('sdsswork/',1)
+                destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
+                destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
+                self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+            except Exception as e:
+                self.error_message("Manifest aborted. %r" % e)
+                self.manifest = None
 
-    def set_endpoint_base_dir_for_sdss5_collection(self, target=None, hpss=None):
-        try:
-            if hpss:
-                target['base_dir'] = self.scratch_dir
-                uufs_home_dir = "/uufs/chpc.utah.edu/common/home"
-                if target['base_dir'] and target['base_dir'].startswith(uufs_home_dir):
-                    target['base_dir'] = target['base_dir'][len(uufs_home_dir):]
-            else:
-                target['base_dir'] = environ['%(endpoint)s_BASE_DIR' % target]
-                if target['endpoint'] == "SAS": target['base_dir'] = "/%s" % basename(target['base_dir'])
-        except Exception as e: target['base_dir'] = '%r' % e
+            if self.manifest:
+                for root, dirs, files in walk(source_dir):
+                    for entity in dirs + files:
+                        path = join(root, entity)
+                        location = relpath(path, source_dir)
+                        
+                        if islink(path):
+                            self.manifest['symlinks'][location] = {
+                                'target': readlink(path),
+                                'mtime': lstat(path).st_mtime
+                            }
+                        elif entity in dirs:
+                            self.manifest['locations'][location] = getmtime(path)
+                try:
+                    if manifest_dir and not exists(manifest_dir): makedirs(manifest_dir)
+                    with open(self.manifest['source'], 'w') as file:
+                        dump(self.manifest, file, indent=4)
+                    message = "CREATE %(source)s" % self.manifest
+                    self.info_message(message)
+                    if self.verbose: print("MANIFEST> %s" % message)
+                except Exception as e:
+                    message = "File write error. %r" % e
+                    self.error_message(message)
+                    if self.verbose: print("MANIFEST> %s" % message)
+                    self.manifest = None
+                
+            if self.manifest:
+                label = "manifest-%s-" % self.section if self.section else "manifest-"
+                if self.mjd: label += "mjd-%r" % self.mjd
+                else: label += "item-%03d" % len(self.item)
+                self.item[label] = {
+                    'source': self.manifest['source'],
+                    'destination': self.manifest['destination'],
+                    'recursive': False
+                }
+        else: self.manifest = None
 
-    def set_item(self):
-        base_dir = self.sas_endpoint['base_dir'] if self.sas_endpoint else None
-        if base_dir and self.location:
-            path = join(base_dir, self.location)
-            if exists(path):
-                self.append_item(recursive = isdir(path))
-            else: self.error_message("Nonexistent path=%r" % path)
-        else: self.item = None
+    def set_item_for_sync(self):
+        self.item = {}
+        self.item['location'] = join(self.location, str(self.mjd)) if self.mjd else self.location                
+        self.item['directory'] = join(self.base_dir['destination'], self.item['location'] )
+        self.item['exists'] = exists(self.item['directory'])
+        if self.item['exists']:
+            self.info_message("Sync item. Destination directory found: path=%(directory)r" % self.item)
+        else:
+            self.error_message("Sync aborted. Destination directory not found: path=%(directory)r" % self.item)
+
+    def set_manifest_for_sync(self):
         
-    def append_item(self, recursive=False):
-        if self.location and self.item is not None:
-            item = {'source':self.location, 'destination':self.location, 'recursive':recursive}
-            self.item.append(item)
-            self.info_message(message = "Item %r" % self.item)
-        else: self.error_message("Cannot append no location to item")
+        if self.file and 'manifest' in self.file:
+            if exists(self.file['manifest']):
+                message = "manifest path=%(manifest)r" % self.file
+                self.info_message(message)
+                if self.verbose: print("SYNC> %s" % message)
+                try:
+                    with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
+                except Exception as e:
+                    self.error_message("Sync aborted: %r" % e)
+                    self.manifest = None
+            else:
+                self.error_message("Sync aborted. Manifest not found: path=%(manifest)r" % self.file)
+                self.manifest = None
+        else:
+            self.error_message("Sync aborted. Manifest not found: file=%r" % self.file)
+            self.manifest = None
+            
+            
+    def utime(self, path = None, mtime = None):
+        if path and mtime:
+            mtimes = ( mtime, mtime )
+            try:
+                utime(path, mtimes, follow_symlinks = False)
+                success = True
+            except Exception as e:
+                self.error_message("Failed to utime path=%r: %r" % (path, e))
+                success = False
+            self.sync['timestamps'].append("touch -h -d @%r %s #success=%r" % (mtime, path, success))
+        else: success = None
+        return success
 
-    def write_batch_file(self):
-        if self.item:
-            lines = []
-            for item in self.item:
-                line = "%(source)s %(destination)s" % item
-                if item['recursive']: line += " -r"
-                lines.append(line)
-            with open(self.file['txt'],'w') as file: file.write("\n".join(lines)+"\n")
-            self.info_message(message = "Create %(txt)s" % self.file)
-        else: self.info_message(message = "no items to transfer")
+    def finalize_symlink(self, path=None, target=None, mtime=None, success=None):
+        if path and target and mtime:
+            status = 'success' if success else 'fail'
+            self.sync['symlinks'].append("ln -s %s %s #success=%r" % (target, path, success))
+            self.sync['count']['symlinks'][status] += 1
+            symlink_utime = self.utime(path = path, mtime = mtime) if success else True
+            if not symlink_utime:
+                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+            
+    def sync_symlinks(self):
+        if self.item and self.item['exists'] and self.manifest:
+            symlinks = self.manifest['symlinks'] if 'symlinks' in self.manifest else None
+            if symlinks is not None:
+                self.info_message("Restoring symlinks...")
+                self.sync['count']['symlinks'] = {'success': 0, 'fail': 0}
+                for location, link in symlinks.items():
+                    path = join(self.item['directory'], location)
+                    target, mtime = ( link['target'], link['mtime'] )
+                    if lexists(path):
+                        if islink(path) and readlink(path) == target:
+                            self.info_message("Link already exists for target=%r to path=%r" % (target, path))
+                            self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
+                        else:
+                            try:
+                                unlink(path)
+                                symlink(target, path)
+                                self.finalize_link(path=path, target=target, mtime=mtime, success=True)
+                            except Exception as e:
+                                self.error_message("Failed to link target=%r to path=%r: %r" % (target, path, e))
+                                self.finalize_symlink(path=path, target=target, mtime=mtime, success=False)
+                    else:
+                        symlink(target, path)
+                        self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
+                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
+            else:
+                self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
 
-    def set_options(self,label=None,sync=None,preserve_mtime=False,fail_on_quota_errors=False,verify=False,delete=False,encrypt=False):
-        self.options = {'batch': self.file['txt']}
-        self.options['sas'] = "%(id)s:%(base_dir)s" % self.sas_endpoint
-        self.options['target'] = "%(id)s:%(base_dir)s"
-        self.options['target'] %= self.sam_endpoint if self.sam_endpoint else self.hpss_endpoint if self.hpss_endpoint else ''
-        self.options['label'] = label if label else self.label
-        self.options['sync'] = sync if sync in self.sync else None
+    def sync_timestamps(self):
+        if self.item and self.item['exists'] and self.manifest:
+            locations = self.manifest['locations'] if 'locations' in self.manifest else None
+            if locations is not None:
+                self.info_message("Restoring timestamps...")
+                self.sync['count']['timestamps'] = {'success': 0, 'fail': 0}
+                for location, mtime in locations.items():
+                    path = join(self.item['directory'], location) if location else self.item['directory']
+                    if exists(path):
+                        if isdir(path): success = self.utime(path = path, mtime = mtime)
+                        else:
+                            self.error_message("Failed to sync timestamp path=%r is not a directory" % path)
+                            success = False
+                    else:
+                        self.error_message("Failed to sync timestamp path=%r does not exist" % path)
+                        success = False
+                    if success: self.sync['count']['timestamps']['success'] += 1
+                    else: self.sync['count']['timestamps']['fail'] += 1
+                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps'])
+            else:
+                self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
+        
+    def set_location_from_env(self):
+        env_path = environ.get(self.env, None)
+        env_base_dir = "%(source)s/" % self.base_dir if 'source' in self.base_dir else None
+        has_base_dir = ( env_base_dir is not None and env_path and env_path.startswith(env_base_dir) )
+        self.location = env_path[len(env_base_dir):] if has_base_dir else None
+
+    def execute_transfer(self):
+        if not self.manifest_only:
+            if self.item:                    
+                self.globus.execute_transfer(items = self.item, options = self.options)
+                self.transfer = self.globus.task
+            else:
+                self.transfer = None
+                self.info_message(message = "no items to transfer")
+        else:
+            self.transfer = None
+            self.info_message(message = "skipping transfer (save manifest only)")
+
+    def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
+        self.options = {}
+        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else self.identifier
+        self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
         self.options['verify'] = verify
@@ -146,156 +342,35 @@ class Mirror:
         if self.options['label']: mode.append("--label=%(label)s")
         self.options['mode'] = " ".join(mode) % self.options
     
-    def set_endpoint_target(self, target):
-        if target:
-            if target['id']:
-                command = "globus endpoint is-activated %(id)s" % target
-                self.process.run(command)
-                if not self.process.status:
-                    lines = [line for line in self.process.out.split("\n") if line]
-                    response = lines[0] if len(lines)==1 else None
-                    active_response = "%(id)s is activated" % target
-                    alternate_response = "%(id)s does not require activation" % target
-                    inactive_response = "The endpoint is not activated." % target
-                    target['status'] = "active" if active_response else "personal endpoint (activation not required)" if alternate_response else "inactive"
-                    target['active'] = response == active_response or alternate_response
-                elif self.process.status==1:
-                    target['status'] = 'inactive (status code %r)' % self.process.status
-                    target['active'] = False
-                    self.ready = False
-                    self.info_message(message = "%r" % self.process.out)
-                else:
-                    target['status'] = 'inactive (status code %r)' % self.process.status
-                    target['active'] = None
-                    self.ready = False
-                    self.info_message(message = "Endpoint Error status code %r (bad syntax)" % self.process.status)
-            else:
-                target['status'] = 'Endpoint ID?'
-                target['active'] = None
-        
-            if self.verbose:
-                self.info_message(message = "%(endpoint)s is %(status)s" % target)
-
-    def set_label(self):
-        parts = [self.program.upper()] if self.program else ['MIRROR']
-        if self.location: parts += self.location.split("/")
-        self.label = "_".join(parts)
-
-    def set_ready(self):
-        sas_ready = self.sas_endpoint and self.sas_endpoint['active'] and self.sas_endpoint['base_dir']
-        sam_ready = self.sam_endpoint and self.sam_endpoint['active'] and self.sam_endpoint['base_dir']
-        self.ready = sas_ready and sam_ready and self.user and self.dir and exists(self.dir)
-        self.critical = not self.ready
-        if self.ready:
-            self.item = []
-            self.set_file()
-            self.set_active_user()
-            self.ready = self.user == self.active_user
-            if self.ready:
-                self.info_message(message = "User %s active." % self.user)
-            else: self.info_message(message = "Cannot activate user %r because %r is already active." % (self.user, self.active_user))
-        if not self.ready: self.item = None
-        self.identifier = None
-
     def set_active_user(self):
-        self.set_whoami()
-        if self.whoami:
-            gid = '@globusid.org'
-            self.active_user = self.whoami[:-len(gid)] if self.whoami.endswith(gid) else self.whoami
-        else: self.active_user = None
-        return self.active_user
-
-    def set_whoami(self):
         if self.ready:
-            command = "globus whoami"
-            self.process.run(command)
-            if self.process.status:
-                self.whoami = None
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else:
-                lines = [line for line in self.process.out.split("\n") if line]
-                self.whoami = lines[0] if len(lines)==1 else None
-
-    def commit(self):
-        if self.item:
-            lines = []
-            for item in self.item:
-                line = "%(source)s %(destination)s" % item
-                if item['recursive']: line += " -r"
-                lines.append(line)
-            with open(self.file['txt'],'w') as file: file.write("\n".join(lines)+"\n")
-            self.info_message(message = "Create %(txt)s" % self.file)
-        else: self.info_message(message = "no items to transfer")
-
-    def set_identifier(self):
-        self.identifier = None
-        if self.process.out:
+            self.globus.set_whoami()
+            whoami = self.globus.whoami
             try:
-                self.identifier = search('Task ID: (.*?)\n', self.process.out).group(1)
-                self.info_message(message = "Task ID=%r" % self.identifier)
-            except AttributeError:print("Cannot find identifier within response=%r" % self.process.out)
-        if self.identifier:
-            if len(self.identifier)!=self.identifier_length:
-                self.identifier=None
-                print("Invalid identifier=%r" % self.identifier)
-
-    def submit(self):
-        if self.ready and self.item:
-            command = "globus transfer %(sas)s %(target)s %(mode)s --batch %(batch)s" % self.options
-            if self.verbose:
-                self.info_message(message = "Command: %r" % command)
-            #self.process.run(command, batch=self.options['batch']) older versions of cli
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else:
-                self.set_identifier()
-                self.ready = self.identifier is not None
-            if not self.ready:
-                batch = self.options['batch'] if 'batch' in self.options else  None
-                self.critical_message(message = "transfer submission failure for command=%r with batch=%r" % (command,batch))
-
+                self.active_user = "%(username)s <%(email)s>" % whoami if whoami else None
+            except: self.active_user = None
+        else: self.active_user = None
 
     def wait(self):
-        if self.identifier:
-            command = "globus task wait %s" % self.identifier
-            self.info_message(message = "Wait...")
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
+        if self.globus:
+            self.globus.wait()
+            self.task = self.globus.task
+            self.transfer = self.globus.task  
+            self.status = self.globus.status
+            self.ready = self.status == "SUCCEEDED"
 
-    def set_details(self):
-        self.details = None
-        if self.identifier:
-            command = "globus task show %s" % self.identifier
-            self.process.run(command)
-            if self.process.status:
-                self.ready = False
-                self.error_message(message = "Error status code %r" % self.process.status)
-            else: self.details = self.process.out
-
-    def set_status(self):
-        self.status = search('Status: (.*?)\n', self.details).group(1) if self.details else None
-        if self.status: self.status = self.status.strip()
-        self.info_message(message = "Status=%r" % self.status)
-        self.ready = self.status == "SUCCEEDED"
-        if not self.ready: self.touch_errfile()
-
-    def write_logfile(self):
-        if self.details and self.file['log']:
-                self.info_message(message = "Create %(log)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.write(self.details)
-                file.close()
-
-    def touch_errfile(self):
-        if self.details and self.file['err']:
-                self.info_message(message = "Touch %(err)s" % self.file)
-                file = open(self.file['log'],'w')
-                file.close()
+    def write_sync_file(self):
+        if self.sync:
+            self.info_message(message = "Create %(sync)s" % self.file)
+            with open(self.file['sync'], 'w') as file:
+                file.write(dumps(self.sync, indent=4))
+                
+    def write_task_file(self):
+        if self.transfer:
+            self.info_message(message = "Create %(task)s" % self.file)
+            with open(self.file['task'], 'w') as file:
+                task_data = getattr(self.transfer, "data", self.transfer)
+                file.write(dumps(task_data, indent=4))
                 
     def done(self):
         self.info_message(message = "Done!")

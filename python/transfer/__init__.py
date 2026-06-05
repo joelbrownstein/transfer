@@ -6,10 +6,11 @@ from .Summary import Summary
 from .Report import Report
 from .Remote import Remote
 from .Globus import Globus
+from .Globus_process import Globus_process
 from .Rclone import Rclone
 from .Backup import Backup
+from .Mirror import Mirror
 from .Copy import Copy
 from .Sync import Sync
 from .Transfer import Transfer
 from .GitHub import GitHub
-from .Mirror import Mirror

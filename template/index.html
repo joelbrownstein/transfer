@@ -36,7 +36,7 @@
                         {% for history in histories -%}
                         <tr>
                             <td>{%- if history.logfile -%}<a href="../../reports/{{mode}}/{{ history.logfile }}" title="{{ history.logfile }}">{{ history.MJD }}</a>{% else %}{{ history.MJD }}{% endif %}</td>
-                            {% for stage in stages -%}{% set history_stage = history[stage] -%}{% set stage = history_stage.stage -%}{% set status = history_stage.status -%}{% set status = 'on sas' if status == 'success' and stage not in  ['backup', 'mirror'] else 'nersc hpss' if status == 'success' and stage == 'backup' else 'unam filemon' if ( mode == 'lvm' and status == 'success' and history.MJD < 60421) else 'on sas' if status == 'success' and history.MJD > 59882 else 'nersc' if status == 'success' else status %}{% set color = colors[status] -%}
+                            {% for stage in stages -%}{% set history_stage = history[stage] -%}{% set stage = history_stage.stage -%}{% set status = history_stage.status -%}{% set status = 'on sas' if status == 'success' and stage not in  ['backup', 'mirror'] else 'nersc hpss' if status == 'success' and stage == 'backup' else 'unam filemon' if ( mode == 'lvm' and status == 'success' and history.MJD < 60421) else 'jhu' if status == 'success' and history.MJD > 61192 else 'on sas' if status == 'success' and history.MJD > 59882 else 'nersc' if status == 'success' else status %}{% set color = colors[status] -%}
                             <td class="{{ color }}"><abbr title="{{ history_stage.stamp }}">{% if status %}{{ status | upper }}{% else %}--{% endif %}</abbr></td>
                             {%- endfor %}
                         </tr>

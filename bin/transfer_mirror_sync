@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+from transfer import Mirror, Argument
+arg = Argument('transfer_mirror_sync')
+options = arg.options
+
+def mirror_sync(options = None):
+    mirror = Mirror(options=options, sync = True)
+    if mirror.ready:
+        mirror.set_item_for_sync()
+        mirror.set_manifest_for_sync()
+        mirror.sync_symlinks()
+        mirror.sync_timestamps()
+        mirror.write_sync_file()
+        mirror.done()
+    else:
+        if options.mjd: print("SYNC MJD %r> Not ready!" % options.mjd)
+        else: print("SYNC> Not ready!")
+    
+transfers = {'apo': {}, 'lco': {}, 'lvm': {}}
+transfers['apo']['apogee'] = 'apogee/apo'
+transfers['apo']['fcam'] = 'fcam/apo'
+transfers['apo']['gcam'] = 'gcam/apo'
+transfers['apo']['spectro'] = 'boss/spectro/apo'
+transfers['apo']['sos'] = 'boss/sos/apo'
+transfers['apo']['quickred'] = 'apogee/quickred/apo'
+transfers['lco']['apogee'] = 'apogee/lco'
+transfers['lco']['fcam'] = 'fcam/lco'
+transfers['lco']['gcam'] = 'gcam/lco'
+transfers['lco']['spectro'] = 'boss/spectro/lco'
+transfers['lco']['sos'] = 'boss/sos/lco'
+transfers['lco']['quickred'] = 'apogee/quickred/lco'
+transfers['lvm']['lvm_spectro'] = 'lvm/lco'
+transfers['lvm']['lvm_agcam'] = 'agcam/lco'
+"""
+debug = True
+if debug:
+    options.identifier = "dr8_spectro_data"
+    options.location = 'dr8/sdss/spectro/data'
+    options.mjd = 53450
+    options.verbose = True
+
+#/uufs/chpc.utah.edu/common/home/sdss50/sdsswork/users/sdssadmin/transfer/mirror/manifest/sdsswork/data/fcam/lco/61180/manifest.transfer.lco.61180.json
+debug = True
+if debug:
+    options.observatory = "lco"
+    options.location = 'sdsswork/data/fcam/lco'
+    options.mjd = 61180
+    options.verbose = True
+"""
+
+if options.mjdlist:
+    for options.mjd in options.mjdlist: mirror_sync(options = options)
+elif options.observatory and options.observatory in transfers and options.sections:
+    sdsswork = "sdsswork/data/%s"
+    locations = [sdsswork % location for section, location in transfers[options.observatory].items() if section in options.sections]
+    for options.location in locations: mirror_sync(options = options)
+else: mirror_sync(options = options)
+
+"""
+transfer_mirror_sync -o lco -m 61180 -S apogee fcam gcam spectro sos quickred -v
+transfer_mirror_sync -i dr8_spectro_data -m 53450 -l dr8/sdss/spectro/data -v
+"""
