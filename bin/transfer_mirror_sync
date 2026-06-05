@@ -49,11 +49,11 @@ if debug:
 """
 
 if options.mjdlist:
-    for options.mjd in options.mjdlist: sync_mirror(options = options)
+    for options.mjd in options.mjdlist: mirror_sync(options = options)
 elif options.observatory and options.observatory in transfers and options.sections:
     sdsswork = "sdsswork/data/%s"
     locations = [sdsswork % location for section, location in transfers[options.observatory].items() if section in options.sections]
-    for options.location in locations: sync_mirror(options = options)
+    for options.location in locations: mirror_sync(options = options)
 else: mirror_sync(options = options)
 
 """
