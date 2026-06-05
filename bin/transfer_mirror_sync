@@ -29,8 +29,8 @@ transfers['lco']['gcam'] = 'gcam/lco'
 transfers['lco']['spectro'] = 'boss/spectro/lco'
 transfers['lco']['sos'] = 'boss/sos/lco'
 transfers['lco']['quickred'] = 'apogee/quickred/lco'
-transfers['lvm']['lvm'] = 'lvm/lco'
-transfers['lvm']['agcam'] = 'agcam/lco'
+transfers['lvm']['lvm_spectro'] = 'lvm/lco'
+transfers['lvm']['lvm_agcam'] = 'agcam/lco'
 """
 debug = True
 if debug:
