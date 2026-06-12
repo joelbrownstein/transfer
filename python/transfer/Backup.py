@@ -5,8 +5,7 @@ from urllib.request import urlopen
 from time import sleep
 from shutil import copyfile
 import tarfile
-from transfer import Remote
-from transfer import Globus
+from transfer import Remote, Globus_process as Globus
 from collections import OrderedDict
 
 class Backup:
@@ -131,7 +130,7 @@ class Backup:
         try: self.ready = bool(eval(environ['TRANSFER_BACKUP_READY']))
         except: self.ready = False
         if not self.ready:
-            self.ready = self.globus and self.globus.ready
+            self.ready = True #self.globus and self.globus.ready
             if self.ready:
                 try:
                     self.logger.debug("Checking %(url)s." % self.server)

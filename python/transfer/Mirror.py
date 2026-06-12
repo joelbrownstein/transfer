@@ -1,6 +1,6 @@
-from transfer import Globus_cli, Logging
+from transfer import Globus, Logging
 from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
-from os.path import join, exists, isdir, relpath, getmtime, islink, lexists
+from os.path import join, exists, isdir, relpath, split, getmtime, islink, lexists
 from collections import OrderedDict
 from json import load, dump, dumps
 
@@ -12,12 +12,12 @@ class Mirror:
     
     def __init__(self, options=None, staging=None, observatory=None, mode=None, process=None, logger=None, log_dir=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, sync = None):
         self.staging = staging
-        self.observatory = observatory
         self.mode = mode
         self.process = process
         self.logger = logger
         self.log_dir = log_dir
         self.identifier = options.identifier if options else identifier
+        self.observatory = options.observatory if options else observatory
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
@@ -25,7 +25,7 @@ class Mirror:
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.item = self.section = None
-        self.set_stage(observatory=observatory,mode=mode)
+        self.set_stage(observatory=self.observatory,mode=mode)
         self.set_sync(sync = sync)
         self.set_public()
         self.set_base_dir()
@@ -33,12 +33,13 @@ class Mirror:
         self.set_dir()
         self.set_file()
         self.set_logger()
-        self.set_options(sync=self.sync, preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
-        self.set_globus_cli()
+        self.set_options(sync='mtime', preserve_mtime=True, fail_on_quota_errors=True, verify=True, encrypt=True)
+        self.set_globus()
     
     def set_stage(self, observatory=None, mode=None):
-        self.stage = "transfer.%s" % observatory if observatory else "transfer"
-        if not self.identifier: self.identifier = self.stage
+        self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
+        if not self.identifier:
+            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "transfer.lvm"
         self.stage += ".%s.mirror" % mode if mode else ""
 
     def set_public(self):
@@ -72,7 +73,7 @@ class Mirror:
                 if self.location:
                     self.dir[dir] = join(self.dir[dir], self.location)
                     if not exists(self.dir[dir]): makedirs(self.dir[dir])
-                self.info_message(message = "%s> %r" % (dir.upper(),self.dir[dir]))
+                self.info_message(message = "%s> %s" % (dir.upper(),self.dir[dir]))
             else:
                 self.info_message(message = "nonexistent directory %r" % self.dir[dir])
                 self.dir[dir] = None
@@ -87,14 +88,14 @@ class Mirror:
                 else:
                     self.file[file] = join(self.dir[file], "%s.%s.json" % (prefix, self.identifier))
 
-    def set_globus_cli(self):
+    def set_globus(self):
         if not self.manifest_only:
-            self.globus_cli = Globus_cli(logger = self.logger, verbose = self.verbose)
-            self.ready = self.globus_cli.ready
+            self.globus = Globus(logger = self.logger, verbose = self.verbose)
+            self.ready = self.globus.ready
             self.set_active_user()
             self.info_message(message = "ready=%r for active user=%r" % (self.ready, self.active_user))
         else:
-            self.globus_cli = None
+            self.globus = None
             self.ready = True
             self.active_user = None
             self.info_message(message = "ready=%r for manifest_only=%r" % (self.ready, self.manifest_only))
@@ -103,7 +104,6 @@ class Mirror:
         if not self.logger:
             mode = "manifest" if self.manifest_only else None
             mode_word = "%s-only" % mode if mode else 'sync' if self.sync else 'transfer'
-            print("LOGGING> staging=%r [%s mode]" % (self.staging, mode_word))
             self.logging = Logging(staging = self.staging, observatory = self.identifier, dir = self.dir['log'], mjd = self.mjd, mode = mode, verbose = self.verbose)
             self.logger = self.logging.logger
         
@@ -148,40 +148,58 @@ class Mirror:
             source_dir = join(self.base_dir['source'], location)
             if not exists(source_dir): return
             
-            self.info_message("MANIFEST> source=%r" % source_dir)
-            self.manifest = {'source': None, 'destination': None, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-
-            for root, dirs, files in walk(source_dir):
-                for entity in dirs + files:
-                    path = join(root, entity)
-                    location = relpath(path, source_dir)
-                    
-                    if islink(path):
-                        self.manifest['symlinks'][location] = {
-                            'target': readlink(path),
-                            'mtime': lstat(path).st_mtime
-                        }
-                    elif entity in dirs:
-                        self.manifest['locations'][location] = getmtime(path)
-                
-            try:
-                parts = self.file['manifest'].split('sdsswork/',1)
-                location = join('sdsswork', parts[1]) if len(parts) == 2 else None
-                self.manifest['source'] = self.file['manifest']
-                self.manifest['destination'] = join(environ['TRANSFER_MIRROR_IPL_DIR'], location)
-                if self.dir['manifest'] and not exists(self.dir['manifest']): makedirs(self.dir['manifest'])
-            except: self.manifest['source'] = self.manifest['destination'] = None
-
-            with open(self.manifest['source'], 'w') as file:
-                dump(self.manifest, file, indent=4)
-            self.info_message("MANIFEST> CREATE %(source)s" % self.manifest)
+            message = "location=%r" % location
+            self.info_message(message)
+            if self.verbose: print("MANIFEST> %s" % message)
             
-            label = "manifest-%r" % self.mjd if self.mjd else "manifest"
-            self.item[label] = {
-                'source': self.manifest['source'],
-                'destination': self.manifest['destination'],
-                'recursive': False
-            }
+
+            try:
+                directory, file = split(self.file['manifest'])
+                manifest_dir = join(directory, self.location)
+                source_manifest = join(manifest_dir, file)                
+                parts = source_manifest.split('sdsswork/',1)
+                destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
+                destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
+                self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+            except Exception as e:
+                self.error_message("Manifest aborted. %r" % e)
+                self.manifest = None
+
+            if self.manifest:
+                for root, dirs, files in walk(source_dir):
+                    for entity in dirs + files:
+                        path = join(root, entity)
+                        location = relpath(path, source_dir)
+                        
+                        if islink(path):
+                            self.manifest['symlinks'][location] = {
+                                'target': readlink(path),
+                                'mtime': lstat(path).st_mtime
+                            }
+                        elif entity in dirs:
+                            self.manifest['locations'][location] = getmtime(path)
+                try:
+                    if manifest_dir and not exists(manifest_dir): makedirs(manifest_dir)
+                    with open(self.manifest['source'], 'w') as file:
+                        dump(self.manifest, file, indent=4)
+                    message = "CREATE %(source)s" % self.manifest
+                    self.info_message(message)
+                    if self.verbose: print("MANIFEST> %s" % message)
+                except Exception as e:
+                    message = "File write error. %r" % e
+                    self.error_message(message)
+                    if self.verbose: print("MANIFEST> %s" % message)
+                    self.manifest = None
+                
+            if self.manifest:
+                label = "manifest-%s-" % self.section if self.section else "manifest-"
+                if self.mjd: label += "mjd-%r" % self.mjd
+                else: label += "item-%03d" % len(self.item)
+                self.item[label] = {
+                    'source': self.manifest['source'],
+                    'destination': self.manifest['destination'],
+                    'recursive': False
+                }
         else: self.manifest = None
 
     def set_item_for_sync(self):
@@ -198,7 +216,9 @@ class Mirror:
         
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
-                self.info_message("SYNC> manifest path=%(manifest)r" % self.file)
+                message = "manifest path=%(manifest)r" % self.file
+                self.info_message(message)
+                if self.verbose: print("SYNC> %s" % message)
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
                 except Exception as e:
@@ -293,8 +313,8 @@ class Mirror:
     def execute_transfer(self):
         if not self.manifest_only:
             if self.item:                    
-                self.globus_cli.execute_transfer(items = self.item, options = self.options)
-                self.transfer = self.globus_cli.task
+                self.globus.execute_transfer(items = self.item, options = self.options)
+                self.transfer = self.globus.task
             else:
                 self.transfer = None
                 self.info_message(message = "no items to transfer")
@@ -324,19 +344,19 @@ class Mirror:
     
     def set_active_user(self):
         if self.ready:
-            self.globus_cli.set_whoami()
-            whoami = self.globus_cli.whoami
+            self.globus.set_whoami()
+            whoami = self.globus.whoami
             try:
                 self.active_user = "%(username)s <%(email)s>" % whoami if whoami else None
             except: self.active_user = None
         else: self.active_user = None
 
     def wait(self):
-        if self.globus_cli:
-            self.globus_cli.wait()
-            self.task = self.globus_cli.task
-            self.transfer = self.globus_cli.task  
-            self.status = self.globus_cli.status
+        if self.globus:
+            self.globus.wait()
+            self.task = self.globus.task
+            self.transfer = self.globus.task  
+            self.status = self.globus.status
             self.ready = self.status == "SUCCEEDED"
 
     def write_sync_file(self):
