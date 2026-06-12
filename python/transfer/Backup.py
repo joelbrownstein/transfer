@@ -5,8 +5,7 @@ from urllib.request import urlopen
 from time import sleep
 from shutil import copyfile
 import tarfile
-from transfer import Remote
-from transfer import Globus
+from transfer import Remote, Globus_process as Globus
 from collections import OrderedDict
 
 class Backup:
