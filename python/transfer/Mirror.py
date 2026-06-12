@@ -21,7 +21,7 @@ class Mirror:
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
-        self.manifest_only = options.manifest_only if options and 'manifes_only' in options else manifest_only
+        self.manifest_only = options.manifest_only if options and 'manifest_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.item = self.section = None
