@@ -48,6 +48,7 @@ def transfer_mirror():
     parser = ArgumentParser()
     parser.add_argument("-i", "--identifier", help="identifier",metavar="IDENTIFIER")
     parser.add_argument("-l", "--location", help="location",metavar="LOCATION")
+    parser.add_argument("-o", "--observatory", action="store", dest="observatory", metavar="OBSERVATORY", help="Observatory")
     parser.add_argument("-m", "--mjd", help="Modified Julian Date (MJD)", type=int, metavar="MJD")
     parser.add_argument("-M", "--mjdlist", nargs='+', type=int, metavar="MJDLIST", help="Batch process ranges 'start end' or explicit MJDs list")
     parser.add_argument("-s", "--save_manifest", help="save manifest", action="store_true")
