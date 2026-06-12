@@ -20,8 +20,7 @@ class Mirror:
         self.observatory = options.observatory if options else observatory
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
-        self.release = self.location.split('/', 1) if self.location and '/' in self.location else None
-        print("RELEASE> %r" % self.release)
+        self.release = self.location.split('/', 1)[0] if self.location and '/' in self.location else None
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
         self.manifest_only = options.manifest_only if options and 'manifest_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
