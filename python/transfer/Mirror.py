@@ -161,7 +161,7 @@ class Mirror:
                 parts = self.file['manifest'].split('%s/' % self.release, 1) if self.release else None
                 destination = join(self.release, parts[1]) if parts and len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
-                self.manifest = {'source': self.manifest['source'], 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+                self.manifest = {'source': self.file['manifest'], 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
                 message = "manifest=%r" % self.manifest
                 self.info_message(message)
                 if self.verbose: print("MANIFEST> %r" % message)
