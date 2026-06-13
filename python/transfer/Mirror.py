@@ -158,7 +158,7 @@ class Mirror:
                 #directory, file = split(self.file['manifest'])
                 #manifest_dir = join(directory, self.location)
                 #source_manifest = join(manifest_dir, file)
-                parts = self.manifest['source'].split('%s/' % self.release, 1) if self.release else None
+                parts = self.file['manifest'].split('%s/' % self.release, 1) if self.release else None
                 destination = join(self.release, parts[1]) if parts and len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': self.manifest['source'], 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
