@@ -39,7 +39,7 @@ class Mirror:
     def set_stage(self, observatory=None, mode=None):
         if observatory is None and mode is None and self.identifier is None and self.location is not None:
             self.stage = None
-            self.identifier = "transfer_mirror %s" % self.location.replace("/", "_")
+            self.identifier = self.location.replace("/", "_")
         elif self.identifier: self.stage = None
         else:
             self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
@@ -331,7 +331,9 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else self.identifier
+        option_label = "transfer_mirror"
+        if self.identifier: option_label += " %s" % self.identifier
+        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else option_label
         self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors
