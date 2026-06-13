@@ -137,7 +137,10 @@ class Mirror:
                 else: recursive = False
                 item = {'source':source, 'destination':destination, 'recursive':recursive}
                 self.item[label] = item
-            else: self.error_message("Nonexistent source path=%r" % source)
+            else:
+                message = "Nonexistent source path=%r" % source
+                self.error_message(message)
+                if self.verbose: print("MANIFEST> %s" % message)
 
     def set_manifest(self):
         """
@@ -165,7 +168,9 @@ class Mirror:
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
             except Exception as e:
-                self.error_message("Manifest aborted. %r" % e)
+                message = "Manifest aborted. %r" % e
+                self.error_message(message)
+                if self.verbose: print("MANIFEST> %s" % message)
                 self.manifest = None
 
             message = "manifest=%r" % self.manifest
@@ -215,12 +220,15 @@ class Mirror:
         self.item['directory'] = join(self.base_dir['destination'], self.item['location'] )
         self.item['exists'] = exists(self.item['directory'])
         if self.item['exists']:
-            self.info_message("Sync item. Destination directory found: path=%(directory)r" % self.item)
+            message = "Sync item. Destination directory found: path=%(directory)r" % self.item
+            self.info_message(message)
+            if self.verbose: print("SYNC> %s" % message)
         else:
-            self.error_message("Sync aborted. Destination directory not found: path=%(directory)r" % self.item)
+            message = "Sync aborted. Destination directory not found: path=%(directory)r" % self.item
+            self.error_message(message)
+            if self.verbose: print("SYNC> %s" % message)
 
     def set_manifest_for_sync(self):
-        
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
                 message = "manifest path=%(manifest)r" % self.file
@@ -229,13 +237,19 @@ class Mirror:
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
                 except Exception as e:
-                    self.error_message("Sync aborted: %r" % e)
+                    message = "Sync aborted: %r" % e
+                    self.error_message(message)
+                    if self.verbose: print("SYNC> %s" % message)
                     self.manifest = None
             else:
-                self.error_message("Sync aborted. Manifest not found: path=%(manifest)r" % self.file)
+                message = "Sync aborted. Manifest not found: path=%(manifest)r" % self.file
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
                 self.manifest = None
         else:
-            self.error_message("Sync aborted. Manifest not found: file=%r" % self.file)
+            message = "Sync aborted. Manifest not found: file=%r" % self.file
+            self.error_message(message)
+            if self.verbose: print("SYNC> %s" % message)
             self.manifest = None
             
             
@@ -246,7 +260,9 @@ class Mirror:
                 utime(path, mtimes, follow_symlinks = False)
                 success = True
             except Exception as e:
-                self.error_message("Failed to utime path=%r: %r" % (path, e))
+                message = "Failed to utime path=%r: %r" % (path, e)
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
                 success = False
             self.sync['timestamps'].append("touch -h -d @%r %s #success=%r" % (mtime, path, success))
         else: success = None
@@ -259,7 +275,9 @@ class Mirror:
             self.sync['count']['symlinks'][status] += 1
             symlink_utime = self.utime(path = path, mtime = mtime) if success else True
             if not symlink_utime:
-                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                message = "Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime)
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
             
     def sync_symlinks(self):
         if self.item and self.item['exists'] and self.manifest:
