@@ -67,5 +67,6 @@ if debug:
 
 transfer_mirror_sync -o apo -m 61196 -S spectro ecam fcam gcam sos apogee quickred -v
 mjd=61204; transfer_mirror_sync -o lco -m $mjd -S apogee fcam gcam spectro sos quickred -v
+mjd=61204; transfer_mirror_sync -o lvm -m $mjd -S lvm_spectro lvm_agcam -v
 transfer_mirror_sync -i dr8_spectro_data -m 53450 -l dr8/sdss/spectro/data -v
 """
