@@ -39,7 +39,7 @@ class Mirror:
     def set_stage(self, observatory=None, mode=None):
         if observatory is None and mode is None and self.identifier is None and self.location is not None:
             self.stage = None
-            self.identifier = self.location.replace("/", "_")
+            self.identifier = "transfer_mirror %s" % self.location.replace("/", "_")
         elif self.identifier: self.stage = None
         else:
             self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
