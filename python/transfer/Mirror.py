@@ -155,20 +155,15 @@ class Mirror:
             
 
             try:
-                #directory, file = split(self.file['manifest'])
-                #manifest_dir = join(directory, self.location)
-                #source_manifest = join(manifest_dir, file)
-                parts = self.file['manifest'].split('%s/' % self.release, 1) if self.release else None
+                manifest_dir, file = split(self.file['manifest'])
+                source_manifest = join(manifest_dir, file)
+                parts = source_manifest.split('%s/' % self.release, 1) if self.release else None
                 destination = join(self.release, parts[1]) if parts and len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
-                self.manifest = {'source': self.file['manifest'], 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-                message = "manifest=%r" % self.manifest
-                self.info_message(message)
-                if self.verbose: print("MANIFEST> %r" % message)
+                self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
+                if self.verbose: print("MANIFEST> manifest=%r" % self.manifest)
             except Exception as e:
-                message = "Manifest aborted. %r" % e
-                self.error_message(message)
-                if self.verbose: print("MANIFEST> %s" % message)
+                self.error_message("Manifest aborted. %r" % e)
                 self.manifest = None
 
             if self.manifest:
