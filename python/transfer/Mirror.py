@@ -166,7 +166,9 @@ class Mirror:
                 self.info_message(message)
                 if self.verbose: print("MANIFEST> %r" % message)
             except Exception as e:
-                self.error_message("Manifest aborted. %r" % e)
+                message = "Manifest aborted. %r" % e
+                self.error_message(message)
+                if self.verbose: print("MANIFEST> %s" % message)
                 self.manifest = None
 
             if self.manifest:
