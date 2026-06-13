@@ -37,10 +37,14 @@ class Mirror:
         self.set_globus()
     
     def set_stage(self, observatory=None, mode=None):
-        self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
-        if not self.identifier:
+        if observatory is None and mode is None and self.identifier is None and self.location is not None:
+            self.stage = None
+            self.identifier = self.location.replace("/", "_")
+        elif self.identifier: self.stage = None
+        else:
+            self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
             self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "transfer.lvm"
-        self.stage += ".%s.mirror" % mode if mode else ""
+            self.stage += ".%s.mirror" % mode if mode else ""
 
     def set_public(self):
         self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
