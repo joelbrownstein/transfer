@@ -20,7 +20,6 @@ class Mirror:
         self.observatory = options.observatory if options else observatory
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
-        self.release = self.location.split('/', 1)[0] if self.location and '/' in self.location else None
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
         self.manifest_only = options.manifest_only if options and 'manifest_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
@@ -157,14 +156,17 @@ class Mirror:
             try:
                 manifest_dir, file = split(self.file['manifest'])
                 source_manifest = join(manifest_dir, file)
-                parts = source_manifest.split('%s/' % self.release, 1) if self.release else None
-                destination = join(self.release, parts[1]) if parts and len(parts) == 2 else None
+                parts = source_manifest.split('sdsswork/',1)
+                destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-                if self.verbose: print("MANIFEST> manifest=%r" % self.manifest)
             except Exception as e:
                 self.error_message("Manifest aborted. %r" % e)
                 self.manifest = None
+
+            message = "manifest=%r" % self.manifest
+            self.info_message(message)
+            if self.verbose: print("MANIFEST> %s" % message)
 
             if self.manifest:
                 for root, dirs, files in walk(source_dir):
