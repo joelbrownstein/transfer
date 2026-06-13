@@ -163,7 +163,7 @@ class Mirror:
                 destination = join(self.release, parts[1]) if parts and len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
-                if self.verbose: print("MANIFEST> manifest=%r % self.manifest)
+                if self.verbose: print("MANIFEST> manifest=%r" % self.manifest)
             except Exception as e:
                 self.error_message("Manifest aborted. %r" % e)
                 self.manifest = None
