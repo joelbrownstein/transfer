@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+while getopts m:o: args
+do
+    case "${args}" in
+        m) mjd=${OPTARG};;
+        o) obs=${OPTARG};;
+    esac
+done
+
+
+if [ -z "${mjd}" ]; then
+    NOW=$(date +"%Y%m%d")
+    mjd=$(( ( $(date +%s -d "$NOW") / 86400 ) + 40587 ))
+fi
+
+re='^[0-9]{5}$'
+if [[ $mjd =~ $re ]]; then
+    if [[ "$obs" = "apo" ]]; then
+        sections="spectro ecam fcam gcam sos apogee quickred"
+    elif [[ "$obs" = "lco" ]]; then
+        sections="apogee fcam gcam spectro sos quickred"
+    elif [[ "$obs" = "lvm" ]]; then
+        sections="lvm_spectro lvm_agcam "
+    else
+        echo "REMOTE_MIRROR_SYNC> invalid observatory: $obs"
+        exit 6
+    fi
+else
+    echo "REMOTE_MIRROR_SYNC> invalid mjd: $mjd"
+    exit 6
+fi
+
+echo "OK"
