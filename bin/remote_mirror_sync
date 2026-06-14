@@ -43,4 +43,9 @@ if [ "$verbose" = true ]; then
     echo "REMOTE> $command"
 fi
 
-ssh "${TRANSFER_SYNC_USER}@${TRANSFER_SYNC_HOST}" "${command}"
+if [ "$verbose" = true ]; then
+    ssh "${TRANSFER_SYNC_USER}@${TRANSFER_SYNC_HOST}" "${command}"
+else
+    ssh "${TRANSFER_SYNC_USER}@${TRANSFER_SYNC_HOST}" "${command}" 2>&1 \
+        | sed -E '/Currently Loaded Modulefiles:|^[[:space:]]*[0-9]+\)/d'
+fi
