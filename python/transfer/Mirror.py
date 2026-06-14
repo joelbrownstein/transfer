@@ -303,9 +303,13 @@ class Mirror:
                     else:
                         symlink(target, path)
                         self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
-                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
+                message = f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks']
+                self.info_message(message)
+                if self.verbose: print("SYMLINKS> %s" % message)
             else:
-                self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
+                message = f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest
+                self.error_message(message)
+                if self.verbose: print("SYMLINKS> %s" % message)
 
     def sync_timestamps(self):
         if self.item and self.item['exists'] and self.manifest:
@@ -325,9 +329,13 @@ class Mirror:
                         success = False
                     if success: self.sync['count']['timestamps']['success'] += 1
                     else: self.sync['count']['timestamps']['fail'] += 1
-                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps'])
+                message = f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps']
+                self.info_message(message)
+                if self.verbose: print("TIMESTAMPS> %s" % message)
             else:
-                self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
+                message = f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest
+                self.error_message(message)
+                if self.verbose: print("TIMESTAMPS> %s" % message)
         
     def set_location_from_env(self):
         env_path = environ.get(self.env, None)
