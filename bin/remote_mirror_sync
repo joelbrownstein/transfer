@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-while getopts m:o: args
+while getopts m:o:v args
 do
     case "${args}" in
         m) mjd=${OPTARG};;
         o) obs=${OPTARG};;
+        v) verbose=true;;
     esac
 done
 
@@ -31,4 +32,8 @@ else
     exit 6
 fi
 
-echo "OK"
+command="transfer_mirror_sync -o $obj -m $mjd -S $sections"
+if [ "$verbose" = true ]; then
+    command="$command -v"
+    echo "REMOTE> $command"
+fi
