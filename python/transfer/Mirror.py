@@ -21,7 +21,7 @@ class Mirror:
         self.mjd = options.mjd if options and hasattr(options, 'mjd') else mjd
         self.location = options.location if options else location
         self.save_manifest = options.save_manifest if options and 'save_manifest' in options else save_manifest
-        self.manifest_only = options.manifest_only if options and 'manifes_only' in options else manifest_only
+        self.manifest_only = options.manifest_only if options and 'manifest_only' in options else manifest_only
         self.dryrun = options.dryrun if options else dryrun
         self.verbose = options.verbose if options else verbose
         self.item = self.section = None
@@ -37,10 +37,14 @@ class Mirror:
         self.set_globus()
     
     def set_stage(self, observatory=None, mode=None):
-        self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
-        if not self.identifier:
+        if observatory is None and mode is None and self.identifier is None and self.location is not None:
+            self.stage = None
+            self.identifier = self.location.replace("/", "_")
+        elif self.identifier: self.stage = None
+        else:
+            self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
             self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "transfer.lvm"
-        self.stage += ".%s.mirror" % mode if mode else ""
+            self.stage += ".%s.mirror" % mode if mode else ""
 
     def set_public(self):
         self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
@@ -133,7 +137,10 @@ class Mirror:
                 else: recursive = False
                 item = {'source':source, 'destination':destination, 'recursive':recursive}
                 self.item[label] = item
-            else: self.error_message("Nonexistent source path=%r" % source)
+            else:
+                message = "Nonexistent source path=%r" % source
+                self.error_message(message)
+                if self.verbose: print("MANIFEST> %s" % message)
 
     def set_manifest(self):
         """
@@ -154,16 +161,21 @@ class Mirror:
             
 
             try:
-                directory, file = split(self.file['manifest'])
-                manifest_dir = join(directory, self.location)
-                source_manifest = join(manifest_dir, file)                
+                manifest_dir, file = split(self.file['manifest'])
+                source_manifest = join(manifest_dir, file)
                 parts = source_manifest.split('sdsswork/',1)
                 destination = join('sdsswork', parts[1]) if len(parts) == 2 else None
                 destination_manifest = join(environ['TRANSFER_MIRROR_IPL_DIR'], destination )
                 self.manifest = {'source': source_manifest, 'destination': destination_manifest, 'location': location, 'locations': {'': getmtime(source_dir)}, 'symlinks': {}}
             except Exception as e:
-                self.error_message("Manifest aborted. %r" % e)
+                message = "Manifest aborted. %r" % e
+                self.error_message(message)
+                if self.verbose: print("MANIFEST> %s" % message)
                 self.manifest = None
+
+            message = "manifest=%r" % self.manifest
+            self.info_message(message)
+            if self.verbose: print("MANIFEST> %s" % message)
 
             if self.manifest:
                 for root, dirs, files in walk(source_dir):
@@ -208,12 +220,15 @@ class Mirror:
         self.item['directory'] = join(self.base_dir['destination'], self.item['location'] )
         self.item['exists'] = exists(self.item['directory'])
         if self.item['exists']:
-            self.info_message("Sync item. Destination directory found: path=%(directory)r" % self.item)
+            message = "Sync item. Destination directory found: path=%(directory)r" % self.item
+            self.info_message(message)
+            if self.verbose: print("SYNC> %s" % message)
         else:
-            self.error_message("Sync aborted. Destination directory not found: path=%(directory)r" % self.item)
+            message = "Sync aborted. Destination directory not found: path=%(directory)r" % self.item
+            self.error_message(message)
+            if self.verbose: print("SYNC> %s" % message)
 
     def set_manifest_for_sync(self):
-        
         if self.file and 'manifest' in self.file:
             if exists(self.file['manifest']):
                 message = "manifest path=%(manifest)r" % self.file
@@ -222,13 +237,19 @@ class Mirror:
                 try:
                     with open(self.file['manifest'], 'r') as file: self.manifest = load(file)
                 except Exception as e:
-                    self.error_message("Sync aborted: %r" % e)
+                    message = "Sync aborted: %r" % e
+                    self.error_message(message)
+                    if self.verbose: print("SYNC> %s" % message)
                     self.manifest = None
             else:
-                self.error_message("Sync aborted. Manifest not found: path=%(manifest)r" % self.file)
+                message = "Sync aborted. Manifest not found: path=%(manifest)r" % self.file
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
                 self.manifest = None
         else:
-            self.error_message("Sync aborted. Manifest not found: file=%r" % self.file)
+            message = "Sync aborted. Manifest not found: file=%r" % self.file
+            self.error_message(message)
+            if self.verbose: print("SYNC> %s" % message)
             self.manifest = None
             
             
@@ -239,7 +260,9 @@ class Mirror:
                 utime(path, mtimes, follow_symlinks = False)
                 success = True
             except Exception as e:
-                self.error_message("Failed to utime path=%r: %r" % (path, e))
+                message = "Failed to utime path=%r: %r" % (path, e)
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
                 success = False
             self.sync['timestamps'].append("touch -h -d @%r %s #success=%r" % (mtime, path, success))
         else: success = None
@@ -252,7 +275,9 @@ class Mirror:
             self.sync['count']['symlinks'][status] += 1
             symlink_utime = self.utime(path = path, mtime = mtime) if success else True
             if not symlink_utime:
-                self.error_message("Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime))
+                message = "Failed to sync symlink timestamp path=%r [mtime=%r]" % (path, mtime)
+                self.error_message(message)
+                if self.verbose: print("SYNC> %s" % message)
             
     def sync_symlinks(self):
         if self.item and self.item['exists'] and self.manifest:
@@ -278,9 +303,13 @@ class Mirror:
                     else:
                         symlink(target, path)
                         self.finalize_symlink(path=path, target=target, mtime=mtime, success=True)
-                self.info_message(f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks'])
+                message = f"Sync symlinks complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['symlinks']
+                self.info_message(message)
+                if self.verbose: print("SYMLINKS> %s" % message)
             else:
-                self.error_message(f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest)
+                message = f"Sync symlinks failed.  symlinks not in manifest=%r" % self.manifest
+                self.error_message(message)
+                if self.verbose: print("SYMLINKS> %s" % message)
 
     def sync_timestamps(self):
         if self.item and self.item['exists'] and self.manifest:
@@ -300,9 +329,13 @@ class Mirror:
                         success = False
                     if success: self.sync['count']['timestamps']['success'] += 1
                     else: self.sync['count']['timestamps']['fail'] += 1
-                self.info_message(f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps'])
+                message = f"Sync timestamp complete. Success count=%(success)r, Fail count=%(fail)r" % self.sync['count']['timestamps']
+                self.info_message(message)
+                if self.verbose: print("TIMESTAMPS> %s" % message)
             else:
-                self.error_message(f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest)
+                message = f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest
+                self.error_message(message)
+                if self.verbose: print("TIMESTAMPS> %s" % message)
         
     def set_location_from_env(self):
         env_path = environ.get(self.env, None)
@@ -324,7 +357,9 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else self.identifier
+        option_label = "transfer_mirror"
+        if self.identifier: option_label += " %s" % self.identifier
+        self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else option_label
         self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
         self.options['preserve_mtime'] = preserve_mtime
         self.options['fail_on_quota_errors'] = fail_on_quota_errors

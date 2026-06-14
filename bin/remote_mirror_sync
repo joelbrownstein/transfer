@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+while getopts l:m:o:v args
+do
+    case "${args}" in
+        l) location=${OPTARG};;
+        m) mjd=${OPTARG};;
+        o) obs=${OPTARG};;
+        v) verbose=true;;
+    esac
+done
+
+if [ -z "${TRANSFER_SYNC_USER}" ] || [ -z "${TRANSFER_SYNC_HOST}" ]; then
+    echo "Error: TRANSFER_SYNC_USER and TRANSFER_SYNC_HOST environment variables must be set."
+    exit 1
+fi
+
+if [ -n "${location}" ]; then
+    command="transfer_mirror_sync -l $location"
+else
+    if [ -z "${mjd}" ]; then
+        NOW=$(date +"%Y%m%d")
+        mjd=$(( ( $(date +%s -d "$NOW") / 86400 ) + 40587 ))
+    fi
+    re='^[0-9]{5}$'
+    if [[ $mjd =~ $re ]]; then
+        if [[ "$obs" = "apo" ]]; then
+            sections="spectro ecam fcam gcam sos apogee quickred"
+        elif [[ "$obs" = "lco" ]]; then
+            sections="apogee fcam gcam spectro sos quickred"
+        elif [[ "$obs" = "lvm" ]]; then
+            sections="lvm_spectro lvm_agcam "
+        else
+            echo "REMOTE_MIRROR_SYNC> invalid observatory: $obs"
+            exit 6
+        fi
+    else
+        echo "REMOTE_MIRROR_SYNC> invalid mjd: $mjd"
+        exit 6
+    fi
+fi
+
+if [ "$verbose" = true ]; then
+    command="$command -v"
+    echo "REMOTE> $command"
+fi
+
+if [ "$verbose" = true ]; then
+    ssh "${TRANSFER_SYNC_USER}@${TRANSFER_SYNC_HOST}" "${command}"
+else
+    ssh "${TRANSFER_SYNC_USER}@${TRANSFER_SYNC_HOST}" "${command}" 2>&1 \
+        | sed -E '/Currently Loaded Modulefiles:|^[[:space:]]*[0-9]+\)/d'
+fi
