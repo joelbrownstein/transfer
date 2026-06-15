@@ -11,7 +11,6 @@ import glob
 import requests
 from re import findall
 from itertools import chain
-from yamlordereddictloader import Loader
 from pytz import timezone
 
 
