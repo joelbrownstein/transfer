@@ -101,11 +101,11 @@ class Backup:
     def set_tarfile(self):
         self.tarfile = {}
         if self.dir:
-            ext = "tgz" if self.stage_mirror else "tar"
-            self.tarfile['file'] = file = "{mjd}_{section}.{ext}".format(mjd=self.mjd, section=self.section, ext=ext)
+            self.tarfile['file'] = file = "{mjd}_{section}.tar".format(mjd=self.mjd, section=self.section)
+            cloudfile = "%s.zstd" % file 
             self.tarfile['local'] =  join(self.tar_dir, file)
             self.tarfile['hpss-staging'] =  join(self.hpss_staging_dir, self.section, file) if self.hpss_staging_dir else None
-            self.tarfile['cloud-staging'] =  join(self.cloud_staging_dir, self.section, file) if self.cloud_staging_dir else None
+            self.tarfile['cloud-staging'] =  join(self.cloud_staging_dir, self.section, cloudfile) if self.cloud_staging_dir else None
 
     def tar(self):
         self.set_section_dir()
