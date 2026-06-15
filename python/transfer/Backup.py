@@ -31,7 +31,6 @@ class Backup:
         self.set_hpss_staging_dir(observatory=observatory_mode)
         self.set_cloud_staging_dir(observatory=observatory_mode)
         self.set_dir()
-        self.set_remote_dir(staging=staging)
         self.tarfiles = OrderedDict()
         self.ready = True
         if self.verbose: print("BACKUP> ready=%r" % self.ready)
@@ -93,11 +92,6 @@ class Backup:
         elif self.stage_mirror: self.tar_dir = self.dir
         else: self.tar_dir = None
         
-
-    def set_remote_output(self, command=None):
-        self.remote.set_stdout(file = self.get_remote_file(command=command, ext='out.txt'))
-        self.remote.set_stderr(file = self.get_remote_file(command=command, ext='err.txt'))
-
     def set_server(self, server=None):
         if not server:
             try: server = environ['TRANSFER_BACKUP_SERVER']
@@ -105,32 +99,6 @@ class Backup:
         self.server = {'system': server if server in self.servers else self.servers[0]}
         self.server['url'] =  "https://newt.nersc.gov/newt/status/%(system)s" % self.server
     
-    def set_remote_dir(self, staging=None):
-        if self.stage_backup:
-            try: self.remote_dir = staging.replace(environ['SAS_ROOT'],environ['HPSS_BASE_DIR'])##fix
-            except: self.remote_dir = None
-            if self.verbose: print("BACKUP> HPSS remote_dir=%r" % self.remote_dir)
-        else: self.remote_dir = None
-
-    def set_remote_path(self):
-        self.remote_path = join(self.remote_dir, self.section, '') if self.remote_dir and self.section else None
-
-    def mkdir_remote_path(self):
-        if self.ready and self.remote and self.remote.connected:
-            if self.remote_path:
-                self.set_remote_output(command='hsi_mkdir')
-                #command = "hsi -s archive mkdir -m 2750 -p " + self.remote_path
-                command = "/usr/common/mss/bin/hsi mkdir -m 2750 -p " + self.remote_path
-                self.logger.debug(command)
-                #self.process.run(command)
-                self.remote.exec_command(command)
-                if self.remote.return_code:
-                    self.ready = False
-                    self.logger.critical("HSI return code %r. Giving up!" % self.remote.return_code)
-            else:
-                self.ready = False
-                self.logger.critical("HSI mkdir requires valid path. Giving up!")
-
     def set_section_dir(self):
         if self.staging and self.section:
             boss_section = self.section in ['sos', 'spectro'] if self.section else None
@@ -142,13 +110,6 @@ class Backup:
                 self.ready = False
         else: self.ready = False
 
-    def get_remote_file(self, command=None, ext=None):
-        command = command if command else "proc"
-        file = "transfer.remote.{hostname}.{command}.{ext}" if ext else "transfer.remote.{hostname}.{command}"
-        file = file.format(hostname=self.remote.hostname, command=command, ext=ext)
-        return join(self.tar_dir, file) if self.tar_dir else file
-
-
     def set_tarfile(self):
         self.tarfile = {}
         if self.dir:
@@ -157,7 +118,6 @@ class Backup:
             self.tarfile['local'] =  join(self.tar_dir, file)
             self.tarfile['hpss-staging'] =  join(self.hpss_staging_dir, self.section, file) if self.hpss_staging_dir else None
             self.tarfile['cloud-staging'] =  join(self.cloud_staging_dir, self.section, file) if self.cloud_staging_dir else None
-            self.tarfile['remote'] =  join(self.remote_dir, self.section, file) if self.remote_dir else None
 
     def tar(self):
         self.set_section_dir()
@@ -214,29 +174,3 @@ class Backup:
         else:
             self.logger.warning("CLOUD STAGING> Non-existent %(local)s" % self.tarfile)
             print("CLOUD STAGING> Missing path=%(local)r" % self.tarfile)
-
-    def htar_idx(self):
-        if self.ready:
-            self.set_tar_dir()
-            self.set_remote_output(command='htar_idx')
-            command="/usr/common/mss/bin/htar -Xf %(remote)s" % self.tarfile
-            self.remote.exec_command(command)
-            self.logger.info("htar -Xf %(remote)s" % self.tarfile)
-
-    """def htar(self, count=1, limit=5, seconds=60):
-        self.set_section_dir()
-        if self.ready:
-            command = "htar -cvhf {0}/{1}/{2}_{1}.tar {3} {2}".format(self.remote_dir, self.section, self.mjd, self.crc)
-            self.logger.debug(command)
-            self.process.run(command)
-            self.success = True if self.process.out.find('HTAR: HTAR SUCCESSFUL') > -1 else False
-            if self.success: self.logger.warn("HTAR success on section %s " % self.section)
-            else:
-                if count <= limit:
-                    sleep(seconds)
-                    self.logger.warn("HTAR Failed on section %s. Retrying[%r/%r]." % (self.section, count, limit))
-                    self.backup(count=count+1)
-                else:
-                    self.ready = False
-                    self.logger.critical("HTAR failed on section %s after %r tries. Giving up!" % (self.section,limit))"""
-            
