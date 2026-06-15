@@ -237,7 +237,7 @@ class Transfer:
                     backup.copy_to_hpss_staging()
                     backup.zstd_to_cloud_staging()
                 chdir(oldwd)
-             else: self.ready = False
+            else: self.ready = False
             if self.ready: self.summary.save(stage=self.stage, status='success')
             else:
                 logger.critical("ERROR! Remote is not ready for BACKUP")
