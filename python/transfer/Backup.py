@@ -5,8 +5,8 @@ from urllib.request import urlopen
 from time import sleep
 from shutil import copyfile
 import tarfile
-from transfer import Remote, Globus_process as Globus
 from collections import OrderedDict
+from zstandard import ZstdCompressor
 
 class Backup:
 
@@ -29,38 +29,21 @@ class Backup:
         self.set_stage(observatory=observatory_mode)
         self.set_mjd_dir(observatory=observatory_mode)
         self.set_hpss_staging_dir(observatory=observatory_mode)
+        self.set_cloud_staging_dir(observatory=observatory_mode)
         self.set_dir()
         self.set_remote_dir(staging=staging)
         self.tarfiles = OrderedDict()
-        self.globus_transfer = None
-        # no globus
-        self.globus = Globus(staging=staging, observatory=observatory, mode=mode, mjd=mjd, hpss=True,  process=process, dir=dir, scratch_dir=self.dir, logger=logger, verbose=verbose) if self.stage_backup else None
-        # with globus
-        #self.globus = Globus(staging=staging, observatory=observatory, mjd=mjd, hpss=self.stage_backup, sam=self.stage_mirror, process=process, dir=dir, scratch_dir=self.dir, logger=logger, verbose=verbose)
-        if self.stage_backup:
-            if self.dir and self.remote_dir and self.server and self.process and self.process.ready: self.set_ready()
-        elif self.stage_mirror:
-            self.ready = True if self.dir else False
-        else: self.ready = False
+        self.ready = True
         if self.verbose: print("BACKUP> ready=%r" % self.ready)
 
     def set_stage(self, observatory=None):
         self.stage = "transfer.%s.backup" % observatory if observatory else "transfer.backup"
-
-    def set_remote(self):
-        if self.stage_backup:
-            try: username, hostname = environ['TRANSFER_BACKUP_USER'], environ['TRANSFER_BACKUP_HOST']
-            except: username, hostname = (None, None)
-            self.remote = Remote(username=username, hostname=hostname, verbose=self.verbose) if username and hostname else None
-        else: set.remote = None
     
     def set_mjd_dir(self, observatory=None):
-        env =  "TRANSFER_BACKUP_DIR" if self.stage_backup else "TRANSFER_MIRROR_BACKUP" if self.stage_mirror else None
-        try: self.dir = environ[env]
+        try: self.dir = environ["TRANSFER_BACKUP_DIR"]
         except: self.dir = None
         system = self.server['system'] if self.server else None
-        
-        location = ( join(observatory, system) if self.stage_backup else join(system, observatory) if self.stage_mirror else None ) if observatory and system else None
+        location = ( join(observatory, system) if observatory and system else None
         self.mjd_dir = join(self.dir, location, str(self.mjd)) if self.dir and location and self.mjd else None
         if self.mjd_dir and not exists(self.mjd_dir):
             try:
@@ -72,6 +55,9 @@ class Backup:
 
     def set_hpss_staging_dir(self, observatory = None):
         self.hpss_staging_dir = join(self.dir, 'hpss', 'staging', observatory)
+        
+    def set_cloud_staging_dir(self, observatory = None):
+        self.cloud_staging_dir = join(self.dir, 'cloud', 'staging', observatory)
         
     def set_dir(self):
         if self.mjd_dir:
@@ -125,26 +111,6 @@ class Backup:
             except: self.remote_dir = None
             if self.verbose: print("BACKUP> HPSS remote_dir=%r" % self.remote_dir)
         else: self.remote_dir = None
-    
-    def set_ready(self, count=1, limit=10, seconds=600):
-        try: self.ready = bool(eval(environ['TRANSFER_BACKUP_READY']))
-        except: self.ready = False
-        if not self.ready:
-            self.ready = True #self.globus and self.globus.ready
-            if self.ready:
-                try:
-                    self.logger.debug("Checking %(url)s." % self.server)
-                    self.server.update(loads(urlopen(self.server['url']).read().decode()))
-                    self.ready = True if self.server['status'] == 'up' else False
-                    self.logger.warn("HPSS server %(system)s is %(status)s." % self.server)
-                except: pass
-                if not self.ready:
-                    if count <= limit:
-                        sleep(seconds)
-                        self.logger.warn("Waiting for HPSS to come up.  Retrying [%r/%r]." % (count, limit))
-                        self.set_ready(count=count+1)
-                    else: self.logger.critical("HPSS not up after %r tries.  Giving up!" % limit)
-            else: self.logger.critical("Globus not connected.  Giving up!")
 
     def set_remote_path(self):
         self.remote_path = join(self.remote_dir, self.section, '') if self.remote_dir and self.section else None
@@ -190,6 +156,7 @@ class Backup:
             self.tarfile['file'] = file = "{mjd}_{section}.{ext}".format(mjd=self.mjd, section=self.section, ext=ext)
             self.tarfile['local'] =  join(self.tar_dir, file)
             self.tarfile['hpss-staging'] =  join(self.hpss_staging_dir, self.section, file) if self.hpss_staging_dir else None
+            self.tarfile['cloud-staging'] =  join(self.cloud_staging_dir, self.section, file) if self.cloud_staging_dir else None
             self.tarfile['remote'] =  join(self.remote_dir, self.section, file) if self.remote_dir else None
 
     def tar(self):
@@ -217,61 +184,36 @@ class Backup:
         try:
             if exists(source):
                 copyfile(source, destination)
-                self.logger.warning("BACKUP STAGING> %(hpss-staging)s" % self.tarfile)
-                if self.verbose: print("BACKUP STAGING> %(hpss-staging)s" % self.tarfile)
+                self.logger.warning("HPSS STAGING> %(hpss-staging)s" % self.tarfile)
+                if self.verbose: print("HPSS STAGING> %(hpss-staging)s" % self.tarfile)
             else:
-                self.logger.warning("BACKUP STAGING> Non-existent %(local)s" % self.tarfile)
-                print("BACKUP STAGING> %(hpss-staging)s" % self.tarfile)
+                self.logger.warning("HPSS STAGING> Non-existent %(local)s" % self.tarfile)
+                print("HPSS STAGING> Missing path=%(local)r" % self.tarfile)
         except Exception as e:
-            self.logger.warning("BACKUP STAGING> Failed to copy: %r" % e)
-            print("BACKUP STAGING> Failed to copy: %r" % e)
+            self.logger.warning("HPSS STAGING> Failed to copy: %r" % e)
+            print("HPSS STAGING> Failed to copy: %r" % e)
         
-    def set_globus_transfer(self):
-        if self.ready and self.globus.ready:
-            self.globus.set_options(sync = 'mtime', preserve_mtime = True, verify = True)
-            for self.globus.section, tarfile in self.tarfiles.items():
-                self.globus.append_target_for_backup(tarfile=tarfile)
-            self.globus.commit()
-
-    def globus_submit(self):
-        if self.ready and self.globus.ready:
-            self.globus.submit()
-            self.globus.wait()
-            self.globus.set_details()
-            self.globus.set_status()
-            self.globus.write_logfile()
-
-    """def set_globus_transfer(self):
-        if self.ready:
-            self.globus_transfer = Globus_Transfer(configfile="%s.ini" % self.stage, mjd=self.mjd)
-            self.globus_transfer.outfile = join(self.dir, "%s.globus.cli" % self.stage)
-            self.globus_transfer.logfile = join(self.dir, "%s.globus.log" % self.stage)
-            self.globus_transfer.errfile = join(self.dir, "%s.globus.err" % self.stage)
-            self.globus_transfer.commit()
-            if self.globus_transfer.endpoint.config.file:
-                self.globus_transfer.endpoint.config.source['dir'] = self.dir
-                self.globus_transfer.endpoint.config.destination['dir'] = self.remote_dir
-            else:
-                self.globus_transfer = None
-                self.ready = False
-        else: self.globus_transfer = None
-
-
-    def globus_submit(self):
-        print("BACKUP> globus_submit globus_transfer=%r" % self.globus_transfer )
-        if self.ready and self.globus_transfer:
-            print("transfer %r" % self.tarfiles )
-            self.logger.debug("transfer %r" % self.tarfiles)
-            item0 = self.globus_transfer.endpoint.config.item[0]
-            self.globus_transfer.endpoint.config.item = []
-            for section, tarfile in self.tarfiles.items():
-                item = item0.copy()
-                item['dir'] = section
-                item['file'] = tarfile['file']
-                self.globus_transfer.endpoint.config.item.append(item)
-            #self.globus_transfer.submit()"""
-
-
+    def zstd_to_cloud_staging(self):
+        source = self.tarfile['local']
+        destination = self.tarfile['cloud-staging']
+        if exists(source):
+            threads = 12
+            chunk_size = 32 * 1024 * 1024  
+            try:
+                zstd_compressor = ZstdCompressor(level=9, threads=threads)
+                with open(source, 'rb') as tarball:
+                    with open(destination, 'wb') as file:
+                        with zstd_compressor.stream_writer(file) as compressor:
+                            while chunk := tarball.read(chunk_size):
+                                compressor.write(chunk)
+                self.logger.warning("CLOUD STAGING> %(cloud-staging)s" % self.tarfile)
+                if self.verbose: print("CLOUD STAGING> %(cloud-staging)s" % self.tarfile)
+            except Exception as e:
+                self.logger.warning("CLOUD STAGING> Zstandard compression failed: %r" % e)
+                print("CLOUD STAGING> Failed to compress: %r" % e)
+        else:
+            self.logger.warning("CLOUD STAGING> Non-existent %(local)s" % self.tarfile)
+            print("CLOUD STAGING> Missing path=%(local)r" % self.tarfile)
 
     def htar_idx(self):
         if self.ready:
