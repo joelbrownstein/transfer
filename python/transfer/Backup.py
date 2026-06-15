@@ -116,7 +116,7 @@ class Backup:
                 force = True
                 if exists(self.tarfile['local']) or force==True:
                     filemode = "w"
-                    if self.stage_mirror: filemode += ":gz"
+                    #if self.gzip: filemode += ":gz"
                     with tarfile.open(self.tarfile['local'], filemode) as tar: tar.add(str(self.mjd))
                     self.tarfiles[self.section] = self.tarfile
                     self.logger.info("tar create %(local)s" % self.tarfile)
