@@ -79,9 +79,10 @@ class Backup:
 
 
     def set_tar_dir(self):
-        self.tar_dir = join(self.dir, self.section)
-        self.process.mkdir(self.tar_dir, silent=True)
-        
+        self.tar_dir = join(self.dir, self.section) if self.dir and self.section else None
+        if self.tar_dir: self.process.mkdir(self.tar_dir, silent=True)
+        elif self.verbose: print("BACKUP> Null tar_dir for dir=%r section=%r" % (self.dir, self.section))
+
     def set_server(self, server=None):
         if not server:
             try: server = environ['TRANSFER_BACKUP_SERVER']
