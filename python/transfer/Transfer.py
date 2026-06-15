@@ -237,6 +237,7 @@ class Transfer:
                     for backup.section in self.sections:
                         backup.tar()
                         backup.copy_to_hpss_staging()
+                        backup.zstd_to_cloud_staging()
                     chdir(oldwd)
                     """backup.set_globus_transfer()
                     backup.globus_submit()
