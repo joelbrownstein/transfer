@@ -231,22 +231,13 @@ class Transfer:
             logger = self.logging.logger
             backup = Backup(staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if backup.ready:
-                backup.set_remote()
-                if backup.remote:
-                    oldwd = getcwd()
-                    for backup.section in self.sections:
-                        backup.tar()
-                        backup.copy_to_hpss_staging()
-                    chdir(oldwd)
-                    """backup.set_globus_transfer()
-                    backup.globus_submit()
-                    backup.remote.skip_client_connect()
-                    if backup.remote.connected:
-                        for backup.section, backup.tarfile in backup.tarfiles.items(): backup.htar_idx()
-                    backup.remote.client_close()"""
-                else: self.ready = False
+                oldwd = getcwd()
+                for backup.section in self.sections:
+                    backup.tar()
+                    backup.copy_to_hpss_staging()
+                    backup.zstd_to_cloud_staging()
+                chdir(oldwd)
             else: self.ready = False
-
             if self.ready: self.summary.save(stage=self.stage, status='success')
             else:
                 logger.critical("ERROR! Remote is not ready for BACKUP")
