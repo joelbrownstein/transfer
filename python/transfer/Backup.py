@@ -20,9 +20,6 @@ class Backup:
         self.process = process
         self.dir = dir
         self.logger = logger
-        stage = stage if stage else 'backup'
-        self.stage_backup = ( stage == 'backup' )
-        self.stage_mirror = ( stage == 'mirror' )
         self.verbose = verbose
         self.set_server(server=server)
         observatory_mode = observatory if mode=='mos' else mode
@@ -61,19 +58,15 @@ class Backup:
     def set_dir(self):
         if self.mjd_dir:
             if exists(self.mjd_dir):
-                if self.stage_backup:
-                    ls = listdir(self.mjd_dir)
-                    n = max([int(d) for d in ls]) + 1 if len(ls) > 0 else 0
-                    self.dir = join(self.mjd_dir, str(n))
-                    try:
-                        makedirs(self.dir, self.perm)
-                        if self.verbose: print("BACKUP> CREATE: %r" % self.dir)
-                    except Exception as e:
-                        print("BACKUP> %r" % e)
-                        self.dir = None
-                elif self.stage_mirror:
-                    self.dir = self.mjd_dir
-                    if self.verbose: print("BACKUP> MIRROR to %r" % self.dir)
+                ls = listdir(self.mjd_dir)
+                n = max([int(d) for d in ls]) + 1 if len(ls) > 0 else 0
+                self.dir = join(self.mjd_dir, str(n))
+                try:
+                    makedirs(self.dir, self.perm)
+                    if self.verbose: print("BACKUP> CREATE: %r" % self.dir)
+                except Exception as e:
+                    print("BACKUP> %r" % e)
+                    self.dir = None
                 else:
                     if self.verbose: print("BACKUP> Invalid stage=%r" % self.stage)
                     self.dir = None
@@ -86,11 +79,8 @@ class Backup:
 
 
     def set_tar_dir(self):
-        if self.stage_backup:
-            self.tar_dir = join(self.dir, self.section)
-            self.process.mkdir(self.tar_dir, silent=True)
-        elif self.stage_mirror: self.tar_dir = self.dir
-        else: self.tar_dir = None
+        self.tar_dir = join(self.dir, self.section)
+        self.process.mkdir(self.tar_dir, silent=True)
         
     def set_server(self, server=None):
         if not server:
