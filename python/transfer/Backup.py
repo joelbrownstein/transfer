@@ -148,7 +148,7 @@ class Backup:
             threads = 12
             chunk_size = 32 * 1024 * 1024  
             try:
-                zstd_compressor = ZstdCompressor(level=9, threads=threads)
+                zstd_compressor = ZstdCompressor(level=12, threads=threads)
                 with open(source, 'rb') as tarball:
                     with open(destination, 'wb') as file:
                         with zstd_compressor.stream_writer(file) as compressor:
