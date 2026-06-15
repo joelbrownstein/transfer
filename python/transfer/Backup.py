@@ -67,9 +67,6 @@ class Backup:
                 except Exception as e:
                     print("BACKUP> %r" % e)
                     self.dir = None
-                else:
-                    if self.verbose: print("BACKUP> Invalid stage=%r" % self.stage)
-                    self.dir = None
             else:
                 if self.verbose: print("BACKUP> Nonexistent MJD dir %r" % self.mjd_dir)
                 self.dir = None
