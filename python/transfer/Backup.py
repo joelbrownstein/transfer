@@ -43,7 +43,7 @@ class Backup:
         try: self.dir = environ["TRANSFER_BACKUP_DIR"]
         except: self.dir = None
         system = self.server['system'] if self.server else None
-        location = ( join(observatory, system) if observatory and system else None
+        location = join(observatory, system) if observatory and system else None
         self.mjd_dir = join(self.dir, location, str(self.mjd)) if self.dir and location and self.mjd else None
         if self.mjd_dir and not exists(self.mjd_dir):
             try:
