@@ -1,6 +1,7 @@
 from transfer import Globus, Logging
-from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink
+from os import environ, makedirs, walk, utime, lstat, readlink, symlink, unlink, chown
 from os.path import join, exists, isdir, relpath, split, getmtime, islink, lexists
+from grp import getgrnam
 from collections import OrderedDict
 from json import load, dump, dumps
 
@@ -9,6 +10,7 @@ class Mirror:
     sync_options = ['exists', 'size', 'mtime', 'checksum']
     label = 'jhu_ceph'
     staging = 'mirror_%s' % label
+    group = 'sdss'
     
     def __init__(self, options=None, staging=None, observatory=None, mode=None, process=None, logger=None, log_dir=None, identifier=None, location=None, mjd=None, save_manifest=None, manifest_only=None, dryrun=None, verbose=None, sync = None):
         self.staging = staging
@@ -51,7 +53,7 @@ class Mirror:
 
     def set_sync(self, sync = None):
         if sync:
-            self.sync = {'timestamps': [], 'symlinks': [], 'count': {}}
+            self.sync = {'timestamps': [], 'symlinks': [], 'group': [], 'count': {}}
             self.manifest_only = True
         else: self.sync = None
         if self.manifest_only: self.save_manifest = True
@@ -336,6 +338,51 @@ class Mirror:
                 message = f"Sync timestamp failed.  locations not in manifest=%r" % self.manifest
                 self.error_message(message)
                 if self.verbose: print("TIMESTAMPS> %s" % message)
+                
+    def change_gid(self, path=None):
+        changed = None
+        if path and self.gid is not None:
+            if self.sync and 'group' in self.sync: self.sync['group'].append("chgrp -R %s %s" % (self.group, path))
+            try:
+                chown(path, -1, self.gid, follow_symlinks=False)
+                changed = True
+            except Exception as e:
+                changed = False
+                message = "Failed to chgrp for path=%r [gid=%r]: %r" % (path, self.gid, e)
+                self.error_message(message)
+                if self.verbose: print("UPDATE PATH GID> %s" % message)
+        else: changed = None
+        return changed
+
+    def update_group(self):
+        if self.item and self.item['exists'] and self.manifest:
+            try:  self.gid = getgrnam(update_group).gr_gid
+            except KeyError: self.gid = None
+            if self.gid is not None:
+                path = self.item['directory']
+                message = "Recursively changing group ownership to %r (GID: %d) for: %s" % (self.group, self.gid, path)
+                self.info_message(message)
+                if self.verbose: print("UPDATE PATH GID> %s" % message)
+                self.sync['count']['group'] = {'success': 0, 'fail': 0}
+                changed = self.change_gid(path = path)
+                if changed: self.sync['count']['group']['success'] += 1
+                else: self.sync['count']['group']['fail'] += 1
+                for root, dirs, files in walk(path):
+                    for entity in dirs + files:
+                        changed = self.change_gid(path = join(root, entity))
+                        if changed: self.sync['count']['group']['success'] += 1
+                        else: self.sync['count']['group']['fail'] += 1
+                message = "Group sync complete. Success count=%(success)d, Fail count=%(fail)d" % self.sync['count']['group']
+                self.info_message(message)
+                if self.verbose: print("UPDATE GROUP> %s" % message)
+            else:
+                message = "Group %r does not exist on this system." % self.group
+                self.error_message(message)
+                if self.verbose: print("UPDATE GROUP> %s" % message)
+        else:
+            message = "Update group owner aborted. Destination directory does not exist or is not set."
+            self.error_message(message)
+            if self.verbose: print("UPDATE GROUP> %s" % message)
         
     def set_location_from_env(self):
         env_path = environ.get(self.env, None)

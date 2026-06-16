@@ -10,6 +10,7 @@ def mirror_sync(options = None):
         mirror.set_manifest_for_sync()
         mirror.sync_symlinks()
         mirror.sync_timestamps()
+        mirror.update_group()
         mirror.write_sync_file()
         mirror.done()
     else:
