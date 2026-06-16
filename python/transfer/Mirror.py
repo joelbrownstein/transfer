@@ -355,8 +355,8 @@ class Mirror:
         return changed
 
     def update_group(self):
-        if self.item and self.item['exists'] and self.manifest:
-            try:  self.gid = getgrnam(update_group).gr_gid
+        if self.item and self.item['exists'] and self.group:
+            try:  self.gid = getgrnam(self.group).gr_gid
             except KeyError: self.gid = None
             if self.gid is not None:
                 path = self.item['directory']
