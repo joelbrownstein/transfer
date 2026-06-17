@@ -7,7 +7,7 @@ options = arg.options
 def transfer_scratch(options = None, locations = None):
     mirror = Mirror(options=options)
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
-    if mirror.ready:
+    if locations and mirror.ready:
         if mirror.observatory and mirror.mjd:
             for mirror.location in locations: mirror.append_item()
         else: mirror.append_item()
@@ -18,11 +18,11 @@ def transfer_scratch(options = None, locations = None):
             mirror.write_task_file()
             mirror.done()
         else:
-            if options.mjd: print("TRANSFER MJD %r> SKIP" % options.mjd)
-            else: print("TRANSFER> SKIP" )
+            if options.mjd: print("SCRATCH MJD %r> SKIP" % options.mjd)
+            else: print("SCRATCH> SKIP" )
     else:
         if options.mjd: print("TRANSFER MJD %r> Not ready!" % options.mjd)
-        else: print("TRANSFER> Not ready!")
+        else: print("SCRATCH> Not ready!")
 
 def get_locations(options = None):
     transfers = {'apo': {}, 'lco': {}, 'lvm': {}}
@@ -42,7 +42,7 @@ def get_locations(options = None):
     transfers['lvm']['lvm_agcam'] = 'lvm/lvm_agcam'
     if options and options.mjd and options.observatory and options.observatory in transfers and options.sections:
         ext = ".tar.zstd" if options.location.startswith('transfer/cloud') else ".tar" if options.location.startswith('transfer/hpss') else ""
-        locations = [join(options.location, location, "%s_%s%s" % (section, options.mjd, ext)) for section, location in transfers[options.observatory].items() if section in options.sections]
+        locations = [join(options.location, location, "%s_%s%s" % (options.mjd, section, ext)) for section, location in transfers[options.observatory].items() if section in options.sections]
     else: locations = None
     if options.verbose: print("SCRATCH> locations=%r" % locations)
     return locations
