@@ -42,9 +42,9 @@ def get_locations(options = None):
     transfers['lvm']['lvm_agcam'] = 'lvm/lvm_agcam'
     if options and options.mjd and options.observatory and options.observatory in transfers and options.sections:
         ext = ".tar.zstd" if options.location.startswith('transfer/cloud') else ".tar" if options.location.startswith('transfer/hpss') else ""
-        tarfile = 
         locations = [join(options.location, location, "%s_%s%s" % (section, options.mjd, ext)) for section, location in transfers[options.observatory].items() if section in options.sections]
     else: locations = None
+    if options.verbose: print("SCRATCH> locations=%r" % locations)
     return locations
 
 locations = get_locations(options = options)
