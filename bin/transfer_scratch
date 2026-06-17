@@ -48,9 +48,7 @@ def get_locations(options = None):
     return locations
 
 locations = get_locations(options = options)
-if options.mjdlist:
+if locations and options.mjdlist:
     for options.mjd in options.mjdlist: transfer_scratch(options = options, locations = locations)
-elif locations:
-    transfer_scratch(options = options, locations = locations)
-else: transfer_scratch(options = options)
+else: transfer_scratch(options = options, locations = locations)
 
