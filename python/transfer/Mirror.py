@@ -72,8 +72,9 @@ class Mirror:
         try:
             self.base_dir['source'] = environ[sas_base_dir]
             try:
-                self.base_dir['destination'] = environ[transfer_mirror_dir]
-                if self.scratch: self.base_dir['destination'] += "sdsswork/users/sdssadmin"
+                destination = environ[transfer_mirror_dir]
+                if self.scratch: destination = join(destination, "sdsswork/users/sdssadmin")
+                self.base_dir['destination'] = destination
             except: self.base_dir = None
         except: self.base_dir = None
 
