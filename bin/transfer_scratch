@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+from transfer import Mirror, Argument
+from os.path import join
+arg = Argument('transfer_mirror')
+options = arg.options
+
+def transfer_scratch(options = None, locations = None):
+    mirror = Mirror(options=options)
+    mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
+    if mirror.ready:
+        if mirror.observatory and mirror.mjd:
+            for mirror.location in locations: mirror.append_item()
+        else: mirror.append_item()
+        mirror.set_manifest()
+        mirror.execute_transfer()
+        if mirror.transfer:
+            mirror.wait()
+            mirror.write_task_file()
+            mirror.done()
+        else:
+            if options.mjd: print("TRANSFER MJD %r> SKIP" % options.mjd)
+            else: print("TRANSFER> SKIP" )
+    else:
+        if options.mjd: print("TRANSFER MJD %r> Not ready!" % options.mjd)
+        else: print("TRANSFER> Not ready!")
+
+def get_locations(options = None):
+    transfers = {'apo': {}, 'lco': {}, 'lvm': {}}
+    transfers['apo']['apogee'] = 'apo/apogee'
+    transfers['apo']['fcam'] = 'apo/fcam'
+    transfers['apo']['gcam'] = 'apo/gcam'
+    transfers['apo']['spectro'] = 'apo/spectro'
+    transfers['apo']['sos'] = 'apo/sos'
+    transfers['apo']['quickred'] = 'apo/quickred'
+    transfers['lco']['apogee'] = 'lco/apogee'
+    transfers['lco']['fcam'] = 'lco/fcam'
+    transfers['lco']['gcam'] = 'lco/gcam'
+    transfers['lco']['spectro'] = 'lco/spectro'
+    transfers['lco']['sos'] = 'lco/sos'
+    transfers['lco']['quickred'] = 'lco/quickred'
+    transfers['lvm']['lvm_spectro'] = 'lvm/lvm_spectro'
+    transfers['lvm']['lvm_agcam'] = 'lvm/lvm_agcam'
+    if options and options.mjd and options.observatory and options.observatory in transfers and options.sections:
+        ext = ".tar.zstd" if options.location.startswith('transfer/cloud') else ".tar" if options.location.startswith('transfer/hpss') else ""
+        tarfile = 
+        locations = [join(options.location, location, "%s_%s%s" % (section, options.mjd, ext)) for section, location in transfers[options.observatory].items() if section in options.sections]
+    else: locations = None
+    return locations
+
+locations = get_locations(options = options)
+if options.mjdlist:
+    for options.mjd in options.mjdlist: transfer_scratch(options = options, locations = locations)
+elif locations:
+    transfer_scratch(options = options, locations = locations)
+else: transfer_scratch(options = options)
+
