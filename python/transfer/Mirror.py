@@ -30,6 +30,7 @@ class Mirror:
         self.set_stage(observatory=self.observatory,mode=mode)
         self.set_sync(sync = sync)
         self.set_public()
+        self.set_scratch()
         self.set_base_dir()
         self.set_user()
         self.set_dir()
@@ -51,6 +52,12 @@ class Mirror:
     def set_public(self):
         self.public = True if self.location and self.location.startswith('dr') and not self.location.startswith('dr20') else False
 
+    def set_scratch(self):
+        if self.location and self.location.startswith('transfer'):
+            scratch += "VAST" if self.location.startswith('transfer/cloud') else "NFS1" if self.location.startswith('transfer/nfs1') else None
+            self.scratch = "TRANSFER_SCRATCH_%s" if scratch else None
+        else: self.scratch = None
+
     def set_sync(self, sync = None):
         if sync:
             self.sync = {'timestamps': [], 'symlinks': [], 'group': [], 'count': {}}
@@ -60,10 +67,13 @@ class Mirror:
 
     def set_base_dir(self):
         self.base_dir = {}
+        sas_base_dir = self.scratch if self.scratch else "SAS_BASE_DIR" 
+        transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if self.public else "TRANSFER_MIRROR_IPL_DIR"
         try:
-            self.base_dir['source'] = environ['SAS_BASE_DIR']
-            transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if self.public else "TRANSFER_MIRROR_IPL_DIR"
-            try: self.base_dir['destination'] = environ[transfer_mirror_dir]
+            self.base_dir['source'] = environ[sas_base_dir]
+            try:
+                self.base_dir['destination'] = environ[transfer_mirror_dir]
+                if self.scratch: self.base_dir['destination'] += "sdsswork/users/sdssadmin"
             except: self.base_dir = None
         except: self.base_dir = None
 
