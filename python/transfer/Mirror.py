@@ -56,7 +56,7 @@ class Mirror:
 
     def set_scratch(self):
         if self.location and self.location.startswith('transfer'):
-            self.scratch = {"cloud": "TRANSFER_SCRATCH_VAST"} if self.location.startswith('transfer/cloud') else {"hpss": "TRANSFER_SCRATCH_NFS1"} if self.location.startswith('transfer/nfs1') else {}
+            self.scratch = {"cloud": "TRANSFER_SCRATCH_VAST"} if self.location.startswith('transfer/cloud') else {"hpss": "TRANSFER_SCRATCH_NFS1"} if self.location.startswith('transfer/hpss') else {}
         else: self.scratch = None
 
     def set_sync(self, sync = None):
