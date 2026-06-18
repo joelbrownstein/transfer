@@ -91,6 +91,9 @@ class Mirror:
                 if self.location:
                     self.dir[dir] = join(self.dir[dir], self.location)
                     if not exists(self.dir[dir]): makedirs(self.dir[dir])
+                elif self.observatory:
+                    self.dir[dir] = join(self.dir[dir], 'transfer', self.observatory)
+                    if not exists(self.dir[dir]): makedirs(self.dir[dir])
                 self.info_message(message = "%s> %s" % (dir.upper(),self.dir[dir]))
             else:
                 self.info_message(message = "nonexistent directory %r" % self.dir[dir])
