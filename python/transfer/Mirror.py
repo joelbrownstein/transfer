@@ -48,7 +48,7 @@ class Mirror:
             stage = "transfer"
             if self.scratch: stage += ".%s" % next(iter(self.scratch.keys()))
             self.stage = ( "%s.%s" % (stage, observatory )) if observatory else stage
-            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "%s.lvm" % transfer
+            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "%s.lvm" % stage
             self.stage += ".%s.mirror" % mode if mode else ""
 
     def set_public(self):
