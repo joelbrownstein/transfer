@@ -45,8 +45,10 @@ class Mirror:
             self.identifier = self.location.replace("/", "_")
         elif self.identifier: self.stage = None
         else:
-            self.stage = ( "transfer.%s" % observatory ) if observatory else "transfer"
-            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "transfer.lvm"
+            stage = "transfer"
+            if self.scratch: stage += ".%s" % next(iter(self.scratch.keys()))
+            self.stage = ( "%s.%s" % (stage, observatory )) if observatory else stage
+            self.identifier = self.stage if ( not mode or mode != 'lvm' ) else "%s.lvm" % transfer
             self.stage += ".%s.mirror" % mode if mode else ""
 
     def set_public(self):
@@ -54,8 +56,7 @@ class Mirror:
 
     def set_scratch(self):
         if self.location and self.location.startswith('transfer'):
-            scratch = "VAST" if self.location.startswith('transfer/cloud') else "NFS1" if self.location.startswith('transfer/nfs1') else None
-            self.scratch = "TRANSFER_SCRATCH_%s" % scratch if scratch else None
+            scratch = {"cloud": "TRANSFER_SCRATCH_VAST"} if self.location.startswith('transfer/cloud') else {"hpss": "TRANSFER_SCRATCH_NFS1"} if self.location.startswith('transfer/nfs1') else None
         else: self.scratch = None
 
     def set_sync(self, sync = None):
@@ -67,7 +68,7 @@ class Mirror:
 
     def set_base_dir(self):
         self.base_dir = {}
-        sas_base_dir = self.scratch if self.scratch else "SAS_BASE_DIR" 
+        sas_base_dir = next(iter(self.scratch.values())) if self.scratch else "SAS_BASE_DIR" 
         transfer_mirror_dir = "TRANSFER_MIRROR_DR_DIR" if self.public else "TRANSFER_MIRROR_IPL_DIR"
         try:
             self.base_dir['source'] = environ[sas_base_dir]
