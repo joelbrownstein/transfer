@@ -139,10 +139,7 @@ class Mirror:
             destination = join(self.base_dir['destination'], self.location)
             if self.mjd:
                 mjd = str(self.mjd)
-                if self.scratch and self.observatory and self.section:
-                    source = join(source, self.observatory)
-                    destination = join(destination, self.observatory)
-                else:
+                if not self.scratch:
                     source = join(source,mjd)
                     destination = join(destination,mjd)
             has_source = exists(source)

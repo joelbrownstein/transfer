@@ -8,9 +8,7 @@ def transfer_scratch(options = None, locations = None):
     mirror = Mirror(options=options)
     mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
     if locations and mirror.ready:
-        if mirror.observatory and mirror.mjd:
-            for mirror.location in locations: mirror.append_item()
-        else: mirror.append_item()
+        for mirror.section, mirror.location in locations.items(): mirror.append_item()
         mirror.set_manifest()
         mirror.execute_transfer()
         if mirror.transfer:
@@ -42,7 +40,7 @@ def get_locations(options = None):
     transfers['lvm']['lvm_agcam'] = 'lvm/lvm_agcam'
     if options and options.mjd and options.observatory and options.observatory in transfers and options.sections:
         ext = ".tar.zstd" if options.location.startswith('transfer/cloud') else ".tar" if options.location.startswith('transfer/hpss') else ""
-        locations = [join(options.location, location, "%s_%s%s" % (options.mjd, section, ext)) for section, location in transfers[options.observatory].items() if section in options.sections]
+        locations = {section: join(options.location, location, "%s_%s%s" % (options.mjd, section, ext)) for section, location in transfers[options.observatory].items() if section in options.sections}
     else: locations = None
     if options.verbose: print("SCRATCH> locations=%r" % locations)
     return locations
@@ -52,3 +50,12 @@ if locations and options.mjdlist:
     for options.mjd in options.mjdlist: transfer_scratch(options = options, locations = locations)
 else: transfer_scratch(options = options, locations = locations)
 
+"""
+debug = True
+if debug:
+    options.verbose = True
+    options.location = 'transfer/cloud/staging'
+    options.observatory = 'lvm'
+    options.sections = ['lvm_agcam']
+    options.mjd = 61208
+"""
