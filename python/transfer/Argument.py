@@ -51,26 +51,14 @@ def transfer_mirror():
     parser.add_argument("-o", "--observatory", action="store", dest="observatory", metavar="OBSERVATORY", help="Observatory")
     parser.add_argument("-m", "--mjd", help="Modified Julian Date (MJD)", type=int, metavar="MJD")
     parser.add_argument("-M", "--mjdlist", nargs='+', type=int, metavar="MJDLIST", help="Batch process ranges 'start end' or explicit MJDs list")
-    parser.add_argument("-s", "--save_manifest", help="save manifest", action="store_true")
-    parser.add_argument("-S", "--manifest_only", help="manifest only", action="store_true")
+    parser.add_argument("-S", "--sections", nargs='+', metavar="SECTIONS", help="raw data sections")
+    parser.add_argument("-x", "--save_manifest", help="save manifest", action="store_true")
+    parser.add_argument("-X", "--manifest_only", help="manifest only", action="store_true")
     parser.add_argument("-d", "--dryrun", help="dryrun",action="store_true")
     parser.add_argument("-v", "--verbose", help="verbose",action="store_true")
     args = parser.parse_args()
     return parser.prog, args
     
-def transfer_mirror_sync():
-    parser = ArgumentParser()
-    parser.add_argument("-i", "--identifier", help="identifier label pattern", metavar="IDENTIFIER")
-    parser.add_argument("-l", "--location", help="location directory", metavar="LOCATION")
-    parser.add_argument("-o", "--observatory", action="store", dest="observatory", metavar="OBSERVATORY", help="Observatory")
-    parser.add_argument("-m", "--mjd", help="Modified Julian Date (MJD)", type=int, metavar="MJD")
-    parser.add_argument("-S", "--sections", nargs='+', metavar="SECTIONS", help="raw data sections")
-    parser.add_argument("-M", "--mjdlist", nargs='+', type=int, metavar="MJDLIST", help="Batch process ranges 'start end' or explicit MJDs list")
-    parser.add_argument("-d", "--dryrun", help="dryrun",action="store_true")
-    parser.add_argument("-v", "--verbose", help="verbose", action="store_true")
-    args = parser.parse_args()
-    return parser.prog, args
-
 def transfer_rclone():
     parser = ArgumentParser()
     parser.add_argument('-e', '--env', action='store', dest='env', metavar='ENV', help='Rclone this Env')
