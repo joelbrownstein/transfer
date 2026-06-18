@@ -38,7 +38,7 @@ else
         echo "REMOTE_MIRROR_SYNC> invalid mjd: $mjd"
         exit 6
     fi
-    command="transfer_mirror_sync -o $obs -m $mjd -X $sections"
+    command="transfer_mirror_sync -o $obs -m $mjd -S $sections"
 fi
 
 if [ "$verbose" = true ]; then
