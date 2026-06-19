@@ -9,7 +9,7 @@ do
     esac
 done
 
-if [ -z "${TRANSFER_MIRROR_BACKUP}" ]" ]; then
+if [ -z "${TRANSFER_MIRROR_BACKUP}" ]; then
     echo "Error: TRANSFER_MIRROR_BACKUP environment variable must be set."
     exit 1
 fi
@@ -27,7 +27,7 @@ fi
 re='^[0-9]{5}$'
 if [[ $mjd =~ $re ]]; then
     dir=${TRANSFER_MIRROR_BACKUP}/archive/$obs/
-    if [ -d "$dir" ]]; then
+    if [ -d "$dir" ]; then
         echo "Found $dir"
     else
         echo "MISSING mjd=$mjd, nonexistent path $dir"
