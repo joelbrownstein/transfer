@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 
 # Setup a dedicated failure logger for tracking errors cleanly
 failure_logger = logging.getLogger("failures")
@@ -25,7 +26,6 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base):
     tgz_path = Path(tgz_path_str)
     stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
     
-    # Extract the prefix (e.g., 'lvm_agcam') by splitting at the first underscore
     if '_' in stem:
         _, prefix = stem.split('_', 1)
     else:
@@ -51,20 +51,20 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base):
         # 2. Compress .tar to .tar.zstd to the VAST cloud path
         subprocess.run(['zstd', '-q', '-T1', str(tar_path), '-o', str(zstd_path)], check=True)
         
-        return f"SUCCESS: {stem}"
+        return "SUCCESS"
     
     except Exception as e:
         # Capture error and write to the dedicated failures.log file
         error_msg = f"ERROR processing {tgz_path_str}: {str(e)}\n{traceback.format_exc()}"
         failure_logger.error(error_msg)
-        return f"FAILURE: {stem} (Logged to failures.log)"
+        return f"FAILURE: {stem}"
 
 def main():
     parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
     parser.add_argument('-m', '--mjd', type=int, help="Specific MJD to process")
     parser.add_argument('-a', '--all', action='store_true', help="Process ALL mjds in the obs directory")
     parser.add_argument('-o', '--obs', required=True, help="Observation variable (required)")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose stream instead of progress bar")
     
     args = parser.parse_args()
 
@@ -87,7 +87,7 @@ def main():
     # Determine directories to scan
     directories_to_scan = []
     if args.all:
-        if args.verbose: print(f"Scanning all MJDs in {base_dir}...")
+        print(f"Scanning all MJDs in {base_dir}...")
         directories_to_scan = [d for d in base_dir.iterdir() if d.is_dir() and d.name.isdigit()]
     else:
         mjd = args.mjd if args.mjd else int(time.time() / 86400) + 40587
@@ -102,24 +102,43 @@ def main():
     for d in directories_to_scan:
         files_to_process.extend(list(d.glob("*.tgz")))
 
-    if not files_to_process:
+    total_files = len(files_to_process)
+    if total_files == 0:
         print("No .tgz files found to process.")
         sys.exit(0)
 
-    if args.verbose: 
-        print(f"Found {len(files_to_process)} total .tgz files. Launching 64-core processing pool...")
+    print(f"Found {total_files} total .tgz files. Launching 64-core processing pool...")
 
     max_workers = os.cpu_count()
     worker_func = partial(process_file, obs=args.obs, nfs1_base=nfs1_base, vast_base=vast_base)
+
+    success_count = 0
+    failure_count = 0
 
     # Distribute workloads over the interactive node's 64 cores
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(worker_func, str(f)): f for f in files_to_process}
         
-        for future in as_completed(futures):
-            result = future.result()
-            if args.verbose or "FAILURE" in result:
-                print(result)
+        # Initialize tqdm context manager
+        with tqdm(total=total_files, desc="Processing Backups", unit="file", disable=args.verbose) as pbar:
+            for future in as_completed(futures):
+                result = future.result()
+                
+                if result == "SUCCESS":
+                    success_count += 1
+                else:
+                    failure_count += 1
+                    # Using tqdm.write prevents output string line updates from jumping or corrupting the bar
+                    tqdm.write(f"{result} (Logged to failures.log)")
+                
+                if args.verbose:
+                    print(f"Finished: {result}")
+                else:
+                    # Update live tracking metrics side-by-side with the bar
+                    pbar.set_postfix(Success=success_count, Failures=failure_count)
+                    pbar.update(1)
+
+    print("Processing complete!")
 
 if __name__ == "__main__":
     main()
