@@ -80,9 +80,10 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
                 err_msg = proc1.stderr.decode().strip()
                 raise RuntimeError(f"gzip failed: {err_msg}")
         
-        # Success: Rename .part to final .tar and sync timestamps
+        # Success: Rename .part to final .tar
         tar_tmp.replace(tar_path)
-        os.utime(tar_path, orig_timestamps)
+        # REMOVE OR COMMENT OUT THIS LINE:
+        # os.utime(tar_path, orig_timestamps) 
         
         # 2. ATOMIC COMPRESSION: Compress .tar to .tar.zstd.part
         if verbose:
@@ -96,10 +97,10 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
             err_msg = proc2.stderr.decode().strip()
             raise RuntimeError(f"zstd failed: {err_msg}")
         
-        # Success: Rename .part to final .tar.zstd and sync timestamps
+        # Success: Rename .part to final .tar.zstd
         zstd_tmp.replace(zstd_path)
-        os.utime(zstd_path, orig_timestamps)
-        
+        # REMOVE OR COMMENT OUT THIS LINE:
+        # os.utime(zstd_path, orig_timestamps)        
         if verbose:
             tqdm.write(f"[{stem}] SUCCESS: Extracted, compressed, and timestamps synchronized.")
             
