@@ -21,7 +21,7 @@ failure_logger.addHandler(handler)
 def process_file(tgz_path_str, obs, nfs1_base, vast_base):
     """
     Decompresses a .tgz file to a specific NFS directory,
-    then compresses it to .tar.zstd in a specific VAST directory.
+    then compresses it to .tar.zstd (level 12) in a specific VAST directory.
     """
     tgz_path = Path(tgz_path_str)
     stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
@@ -48,8 +48,10 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base):
         with open(tar_path, 'wb') as tar_out:
             subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, check=True)
         
-        # 2. Compress .tar to .tar.zstd to the VAST cloud path
-        subprocess.run(['zstd', '-q', '-T1', str(tar_path), '-o', str(zstd_path)], check=True)
+        # 2. Compress .tar to .tar.zstd using compression level 12
+        # -12 sets the target compression level
+        # -T1 restricts each file to 1 thread since 64 files run concurrently
+        subprocess.run(['zstd', '-q', '-12', '-T1', str(tar_path), '-o', str(zstd_path)], check=True)
         
         return "SUCCESS"
     
@@ -128,13 +130,11 @@ def main():
                     success_count += 1
                 else:
                     failure_count += 1
-                    # Using tqdm.write prevents output string line updates from jumping or corrupting the bar
                     tqdm.write(f"{result} (Logged to failures.log)")
                 
                 if args.verbose:
                     print(f"Finished: {result}")
                 else:
-                    # Update live tracking metrics side-by-side with the bar
                     pbar.set_postfix(Success=success_count, Failures=failure_count)
                     pbar.update(1)
 
