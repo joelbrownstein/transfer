@@ -14,7 +14,7 @@ if [ -z "${TRANSFER_MIRROR_BACKUP}" ]; then
     exit 1
 fi
 
-if [ -z "$obs" ]" ]; then
+if [ -z "$obs" ]; then
     echo "Error: obs variable must be set by -o keyword."
     exit 1
 fi
