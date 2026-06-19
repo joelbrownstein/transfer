@@ -33,6 +33,7 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     """
     Decompresses .tgz to a .tar, then compresses to .tar.zstd (level 12).
     Uses ATOMIC writes (.part files) to prevent corrupted states on failure.
+    Both staging paths use VAST all-flash storage to bypass NFS bottlenecks.
     """
     tgz_path = Path(tgz_path_str)
     stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
@@ -42,7 +43,7 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     else:
         prefix = stem
 
-    # Define the output directory paths
+    # Define the output directory paths entirely on VAST
     tar_dir = Path(vast_base) / "transfer" / "hpss" / "staging" / obs / prefix
     zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / prefix
 
@@ -160,9 +161,9 @@ def main():
         print("No .tgz files found to process.")
         sys.exit(0)
 
-    print(f"Found {total_files} total .tgz files. Launching 64-core processing pool...")
-
+    # Calculate optimal workers and print dynamic status
     max_workers = min(32, os.cpu_count())
+    print(f"Found {total_files} total .tgz files. Launching {max_workers}-worker processing pool...")
 
     worker_func = partial(
         process_file, 
@@ -211,7 +212,7 @@ def main():
                 print("Processing complete!")
             
             except KeyboardInterrupt:
-                tqdm.write("\n\n[!] Received Ctrl+C. Force terminating all tasks safely. Cleaning up temp files...")
+                tqdm.write(f"\n\n[!] Received Ctrl+C. Force terminating all tasks safely. Cleaning up temp files...")
                 executor.shutdown(wait=False, cancel_futures=True)
                 sys.exit(130)
 
