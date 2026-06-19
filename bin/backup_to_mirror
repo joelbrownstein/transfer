@@ -42,10 +42,10 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
     
     if '_' in stem:
-        _, prefix = stem.split('_', 1)
+        _, section = stem.split('_', 1)
         mjd = stem.split('_')
     else:
-        prefix = stem
+        section = stem
         mjd = "unknown_mjd"
 
     # Grab original timestamps to pass back to the manifest builder
@@ -54,12 +54,12 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     mtime = stat_info.st_mtime
 
     # Define the output directory paths entirely on VAST
-    tar_dir = Path(vast_base) / "transfer" / "hpss" / "staging" / obs / prefix
-    zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / prefix
+    tar_dir = Path(vast_base) / "transfer" / "hpss" / "staging" / obs / section
+    zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / section
 
     # Isolate temporary .part files up one directory level into a "partial" folder
-    tar_part_dir = tar_dir.parent / "partial" / prefix
-    zstd_part_dir = zstd_dir.parent / "partial" / prefix
+    tar_part_dir = Path(vast_base) / "transfer" / "hpss" / "partial" / obs / section
+    zstd_part_dir = Path(vast_base) / "transfer" / "cloud" / "partial" / obs / section
 
     tar_dir.mkdir(parents=True, exist_ok=True)
     zstd_dir.mkdir(parents=True, exist_ok=True)
