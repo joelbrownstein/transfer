@@ -93,3 +93,90 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=F
 def main():
     parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
     parser.add_argument('-m', '--mjd', type=int, help="Specific MJD to process")
+    parser.add_argument('-a', '--all', action='store_true', help="Process ALL mjds in the obs directory")
+    parser.add_argument('-o', '--obs', required=True, help="Observation variable (required)")
+    parser.add_argument('-f', '--force', action='store_true', help="Force overwrite output files if they already exist")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print granular file-level steps above the progress bar")
+    
+    args = parser.parse_args()
+
+    # Verify required environment variables
+    mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
+    nfs1_base = os.environ.get("TRANSFER_SCRATCH_NFS1")
+    vast_base = os.environ.get("TRANSFER_SCRATCH_VAST")
+    
+    missing_vars = []
+    if not mirror_backup: missing_vars.append("TRANSFER_MIRROR_BACKUP")
+    if not nfs1_base: missing_vars.append("TRANSFER_SCRATCH_NFS1")
+    if not vast_base: missing_vars.append("TRANSFER_SCRATCH_VAST")
+    
+    if missing_vars:
+        print(f"Error: The following environment variables must be set: {', '.join(missing_vars)}")
+        sys.exit(1)
+
+    base_dir = Path(mirror_backup) / "archive" / args.obs
+    
+    # Determine directories to scan
+    directories_to_scan = []
+    if args.all:
+        print(f"Scanning all MJDs in {base_dir}...")
+        directories_to_scan = [d for d in base_dir.iterdir() if d.is_dir() and d.name.isdigit()]
+    else:
+        mjd = args.mjd if args.mjd else int(time.time() / 86400) + 40587
+        target_dir = base_dir / str(mjd)
+        if not target_dir.exists():
+            print(f"MISSING mjd={mjd}, nonexistent path {target_dir}")
+            sys.exit(6)
+        directories_to_scan = [target_dir]
+
+    # Gather .tgz files
+    files_to_process = []
+    for d in directories_to_scan:
+        files_to_process.extend(list(d.glob("*.tgz")))
+
+    total_files = len(files_to_process)
+    if total_files == 0:
+        print("No .tgz files found to process.")
+        sys.exit(0)
+
+    print(f"Found {total_files} total .tgz files. Launching 64-core processing pool...")
+
+    max_workers = os.cpu_count()
+    worker_func = partial(
+        process_file, 
+        obs=args.obs, 
+        nfs1_base=nfs1_base, 
+        vast_base=vast_base, 
+        force=args.force,
+        verbose=args.verbose
+    )
+
+    success_count = 0
+    failure_count = 0
+    skipped_count = 0
+
+    # Distribute workloads over the interactive node's 64 cores
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(worker_func, str(f)): f for f in files_to_process}
+        
+        # Initialize tqdm context manager
+        with tqdm(total=total_files, desc="Processing Backups", unit="file") as pbar:
+            for future in as_completed(futures):
+                result = future.result()
+                
+                if result == "SUCCESS":
+                    success_count += 1
+                elif result == "SKIPPED":
+                    skipped_count += 1
+                else:
+                    failure_count += 1
+                    tqdm.write(f"{result} (Logged to failures.log)")
+                
+                # Update live tracking metrics side-by-side with the bar
+                pbar.set_postfix(Success=success_count, Skipped=skipped_count, Failures=failure_count)
+                pbar.update(1)
+
+    print("Processing complete!")
+
+if __name__ == "__main__":
+    main()
