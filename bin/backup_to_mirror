@@ -3,10 +3,19 @@ import os
 import sys
 import time
 import argparse
+import logging
+import traceback
 import subprocess
 from pathlib import Path
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+# Setup a dedicated failure logger for tracking errors cleanly
+failure_logger = logging.getLogger("failures")
+failure_logger.setLevel(logging.ERROR)
+handler = logging.FileHandler("failures.log", mode="a")
+handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+failure_logger.addHandler(handler)
 
 def process_file(tgz_path_str, obs, nfs1_base, vast_base):
     """
@@ -20,17 +29,17 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base):
     if '_' in stem:
         _, prefix = stem.split('_', 1)
     else:
-        prefix = stem # Fallback just in case the filename format changes
+        prefix = stem
 
     # Define the output directory paths
     tar_dir = Path(nfs1_base) / "transfer" / "hpss" / "staging" / obs / prefix
     zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / prefix
 
-    # Ensure the directories exist (thread-safe in Python 3.2+)
+    # Ensure staging directories exist
     tar_dir.mkdir(parents=True, exist_ok=True)
     zstd_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define the final file paths
+    # Define final file targets
     tar_path = tar_dir / f"{stem}.tar"
     zstd_path = zstd_dir / f"{stem}.tar.zstd"
 
@@ -42,10 +51,13 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base):
         # 2. Compress .tar to .tar.zstd to the VAST cloud path
         subprocess.run(['zstd', '-q', '-T1', str(tar_path), '-o', str(zstd_path)], check=True)
         
-        return f"SUCCESS: {stem} -> Routed to staging and cloud"
+        return f"SUCCESS: {stem}"
     
-    except subprocess.CalledProcessError as e:
-        return f"ERROR processing {stem}: {e}"
+    except Exception as e:
+        # Capture error and write to the dedicated failures.log file
+        error_msg = f"ERROR processing {tgz_path_str}: {str(e)}\n{traceback.format_exc()}"
+        failure_logger.error(error_msg)
+        return f"FAILURE: {stem} (Logged to failures.log)"
 
 def main():
     parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
@@ -56,7 +68,7 @@ def main():
     
     args = parser.parse_args()
 
-    # Verify all required environment variables
+    # Verify required environment variables
     mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
     nfs1_base = os.environ.get("TRANSFER_SCRATCH_NFS1")
     vast_base = os.environ.get("TRANSFER_SCRATCH_VAST")
@@ -72,7 +84,7 @@ def main():
 
     base_dir = Path(mirror_backup) / "archive" / args.obs
     
-    # Determine which MJD directories to scan
+    # Determine directories to scan
     directories_to_scan = []
     if args.all:
         if args.verbose: print(f"Scanning all MJDs in {base_dir}...")
@@ -85,6 +97,29 @@ def main():
             sys.exit(6)
         directories_to_scan = [target_dir]
 
-    # Gather all .tgz files
+    # Gather .tgz files
     files_to_process = []
-    for d in directories_
+    for d in directories_to_scan:
+        files_to_process.extend(list(d.glob("*.tgz")))
+
+    if not files_to_process:
+        print("No .tgz files found to process.")
+        sys.exit(0)
+
+    if args.verbose: 
+        print(f"Found {len(files_to_process)} total .tgz files. Launching 64-core processing pool...")
+
+    max_workers = os.cpu_count()
+    worker_func = partial(process_file, obs=args.obs, nfs1_base=nfs1_base, vast_base=vast_base)
+
+    # Distribute workloads over the interactive node's 64 cores
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(worker_func, str(f)): f for f in files_to_process}
+        
+        for future in as_completed(futures):
+            result = future.result()
+            if args.verbose or "FAILURE" in result:
+                print(result)
+
+if __name__ == "__main__":
+    main()
