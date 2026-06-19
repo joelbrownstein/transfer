@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+import os
+import sys
+import json
+import argparse
+from pathlib import Path
+from collections import defaultdict
+
+def main():
+    parser = argparse.ArgumentParser(description="Retrospectively generate timestamp manifests from source .tgz files.")
+    parser.add_argument('-o', '--obs', required=True, help="Observation variable (e.g., lvm, apo, lco)")
+    args = parser.parse_args()
+
+    # Read the exact same environment variables
+    mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
+    manifest_base = os.environ.get("TRANSFER_MIRROR_MANIFEST_DIR")
+
+    missing_vars = []
+    if not mirror_backup: missing_vars.append("TRANSFER_MIRROR_BACKUP")
+    if not manifest_base: missing_vars.append("TRANSFER_MIRROR_MANIFEST_DIR")
+
+    if missing_vars:
+        print(f"Error: The following environment variables must be set: {', '.join(missing_vars)}")
+        sys.exit(1)
+
+    base_dir = Path(mirror_backup) / "archive" / args.obs
+    if not base_dir.exists():
+        print(f"Error: Source path does not exist: {base_dir}")
+        sys.exit(1)
+
+    print(f"Scanning all MJDs in source directory: {base_dir}...")
+    mjd_dirs = [d for d in base_dir.iterdir() if d.is_dir() and d.name.isdigit()]
+
+    manifest_data = defaultdict(dict)
+    total_files = 0
+
+    # Extract original timestamps from source archives
+    for d in mjd_dirs:
+        mjd = d.name
+        tgz_files = list(d.glob("*.tgz"))
+        for tgz_path in tgz_files:
+            stem = tgz_path.stem
+            stat_info = tgz_path.stat()
+            
+            manifest_data[mjd][stem] = {
+                "atime": stat_info.st_atime,
+                "mtime": stat_info.st_mtime
+            }
+            total_files += 1
+
+    if total_files == 0:
+        print("No source .tgz files found. Exiting.")
+        sys.exit(0)
+
+    # Establish output path matching the new script's specification
+    manifest_out_dir = Path(manifest_base) / 'transfer' / 'archive' / 'staging' / args.obs
+    manifest_out_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Found {total_files} source files across {len(manifest_data)} MJDs.")
+    print(f"Writing manifests to {manifest_out_dir}...")
+
+    # Write out separate JSONs per MJD
+    for mjd, files_data in manifest_data.items():
+        manifest_file = manifest_out_dir / f"{mjd}.json"
+        
+        # Atomic write pattern to prevent corrupt completions
+        tmp_manifest = manifest_file.with_suffix('.json.part')
+        with open(tmp_manifest, 'w') as f:
+            json.dump(files_data, f, indent=2)
+        tmp_manifest.replace(manifest_file)
+
+    print(f"Successfully generated {len(manifest_data)} JSON manifest file(s) for {args.obs}!")
+
+if __name__ == "__main__":
+    main()
