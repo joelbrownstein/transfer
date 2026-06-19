@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+import shutil
 import argparse
 import logging
 import traceback
@@ -19,11 +20,19 @@ handler = logging.FileHandler("failures.log", mode="a")
 handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
 failure_logger.addHandler(handler)
 
+def check_dependencies():
+    """Ensure required system binaries exist before starting the pool."""
+    missing = []
+    if not shutil.which("gzip"): missing.append("gzip")
+    if not shutil.which("zstd"): missing.append("zstd")
+    if missing:
+        print(f"Error: Missing required system dependencies: {', '.join(missing)}")
+        sys.exit(1)
+
 def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=False):
     """
-    Decompresses a .tgz file to a specific NFS directory,
-    then compresses it to .tar.zstd (level 12) in a specific VAST directory.
-    Preserves original input timestamps and prints inner steps if verbose=True.
+    Decompresses .tgz to a .tar, then compresses to .tar.zstd (level 12).
+    Uses ATOMIC writes (.part files) to prevent corrupted states on failure.
     """
     tgz_path = Path(tgz_path_str)
     stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
@@ -37,13 +46,16 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=F
     tar_dir = Path(nfs1_base) / "transfer" / "hpss" / "staging" / obs / prefix
     zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / prefix
 
-    # Ensure staging directories exist
     tar_dir.mkdir(parents=True, exist_ok=True)
     zstd_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define final file targets
+    # Final target paths
     tar_path = tar_dir / f"{stem}.tar"
     zstd_path = zstd_dir / f"{stem}.tar.zstd"
+
+    # Temporary atomic paths
+    tar_tmp = tar_path.with_suffix('.tar.part')
+    zstd_tmp = zstd_path.with_suffix('.tar.zstd.part')
 
     # Pre-check existence if force is False
     if not force:
@@ -53,31 +65,38 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=F
             return "SKIPPED"
 
     try:
-        # Capture the original file's access and modification timestamps
         stat_info = tgz_path.stat()
         orig_timestamps = (stat_info.st_atime, stat_info.st_mtime)
 
-        # 1. Extract .tgz to .tar to the NFS1 staging path
+        # 1. ATOMIC EXTRACTION: Extract to .part file first
         if verbose:
-            tqdm.write(f"[{stem}] Decompressing source .tgz archive to {tar_path}...")
+            tqdm.write(f"[{stem}] Decompressing source .tgz archive to temporary .part file...")
         
-        with open(tar_path, 'wb') as tar_out:
-            subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, check=True)
+        with open(tar_tmp, 'wb') as tar_out:
+            # Capture stderr to prevent it from corrupting the terminal UI
+            proc1 = subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, stderr=subprocess.PIPE)
+            if proc1.returncode != 0:
+                err_msg = proc1.stderr.decode().strip()
+                raise RuntimeError(f"gzip failed: {err_msg}")
         
-        # Apply original timestamp to the .tar file
+        # Success: Rename .part to final .tar and sync timestamps
+        tar_tmp.replace(tar_path)
         os.utime(tar_path, orig_timestamps)
         
-        # 2. Compress .tar to .tar.zstd using compression level 12
+        # 2. ATOMIC COMPRESSION: Compress .tar to .tar.zstd.part
         if verbose:
-            tqdm.write(f"[{stem}] Compressing .tar archive to level-12 .zstd at {zstd_path}...")
+            tqdm.write(f"[{stem}] Compressing .tar archive to level-12 temporary .zstd.part...")
             
-        zstd_cmd = ['zstd', '-q', '-12', '-T1', str(tar_path), '-o', str(zstd_path)]
-        if force:
-            zstd_cmd.insert(2, '-f')
-            
-        subprocess.run(zstd_cmd, check=True)
+        # Always force overwrite the temp file just in case a previous run left a .part file
+        zstd_cmd = ['zstd', '-q', '-12', '-T1', '-f', str(tar_path), '-o', str(zstd_tmp)]
         
-        # Apply original timestamp to the .tar.zstd file
+        proc2 = subprocess.run(zstd_cmd, stderr=subprocess.PIPE)
+        if proc2.returncode != 0:
+            err_msg = proc2.stderr.decode().strip()
+            raise RuntimeError(f"zstd failed: {err_msg}")
+        
+        # Success: Rename .part to final .tar.zstd and sync timestamps
+        zstd_tmp.replace(zstd_path)
         os.utime(zstd_path, orig_timestamps)
         
         if verbose:
@@ -86,12 +105,17 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=F
         return "SUCCESS"
     
     except Exception as e:
-        # Capture error and write to the dedicated failures.log file
+        # CLEANUP: Ensure partial files are deleted on any failure/interruption
+        if tar_tmp.exists(): tar_tmp.unlink()
+        if zstd_tmp.exists(): zstd_tmp.unlink()
+        
         error_msg = f"ERROR processing {tgz_path_str}: {str(e)}\n{traceback.format_exc()}"
         failure_logger.error(error_msg)
         return f"FAILURE: {stem}"
 
 def main():
+    check_dependencies()
+
     parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
     parser.add_argument('-m', '--mjd', type=int, help="Specific MJD to process")
     parser.add_argument('-a', '--all', action='store_true', help="Process ALL mjds in the obs directory")
@@ -101,7 +125,7 @@ def main():
     
     args = parser.parse_args()
 
-    # Verify required environment variables
+    # Environment variables mapping
     mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
     nfs1_base = os.environ.get("TRANSFER_SCRATCH_NFS1")
     vast_base = os.environ.get("TRANSFER_SCRATCH_VAST")
@@ -117,7 +141,6 @@ def main():
 
     base_dir = Path(mirror_backup) / "archive" / args.obs
     
-    # Determine directories to scan
     directories_to_scan = []
     if args.all:
         print(f"Scanning all MJDs in {base_dir}...")
@@ -130,7 +153,6 @@ def main():
             sys.exit(6)
         directories_to_scan = [target_dir]
 
-    # Gather .tgz files
     files_to_process = []
     for d in directories_to_scan:
         files_to_process.extend(list(d.glob("*.tgz")))
@@ -156,7 +178,6 @@ def main():
     failure_count = 0
     skipped_count = 0
 
-    # Handle ECHOCTL tracking safely via stdin terminal attributes
     fd = sys.stdin.fileno()
     is_tty = os.isatty(fd)
     old_settings = None
@@ -192,13 +213,11 @@ def main():
                 print("Processing complete!")
             
             except KeyboardInterrupt:
-                # Catch Ctrl+C inside the queue loop, immediately terminate all background calculations
-                tqdm.write("\n\n[!] Received Ctrl+C. Force terminating all 64 parallel processing tasks safely...")
+                tqdm.write("\n\n[!] Received Ctrl+C. Force terminating all tasks safely. Cleaning up temp files...")
                 executor.shutdown(wait=False, cancel_futures=True)
                 sys.exit(130)
 
     finally:
-        # Guarantees termios ECHOCTL settings are restored to default state on exit
         if is_tty and old_settings is not None:
             termios.tcsetattr(fd, termios.TCSANOW, old_settings)
 
