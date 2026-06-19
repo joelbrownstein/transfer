@@ -50,7 +50,7 @@ def restore_timestamps_for_mjd(json_file_path, obs, hpss_base, cloud_base, verbo
                 if verbose:
                     print(f"MISSING (In-flight/Skipped): {target}")
 
-        return success_count, missing_count
+    return success_count, missing_count
 
 def main():
     parser = argparse.ArgumentParser(
@@ -92,10 +92,13 @@ def main():
 
     # Pinpoint manifests to evaluate
     if args.mjd:
-        manifest_files = [manifest_dir / f"{args.mjd}.json"]
-        if not manifest_files.exists():
-            print(f"Error: Manifest file for MJD {args.mjd} not found at {manifest_files}")
+        # FIX: Check existence on a clean standalone Path object first
+        single_manifest = manifest_dir / f"{args.mjd}.json"
+        if not single_manifest.exists():
+            print(f"Error: Manifest file for MJD {args.mjd} not found at {single_manifest}")
             sys.exit(1)
+        # Wrap it in a list container so downstream sorting and looping works identically
+        manifest_files = [single_manifest]
     else:
         print(f"Scanning all manifest JSONs in {manifest_dir}...")
         manifest_files = [f for f in manifest_dir.glob("*.json") if f.stem.isdigit()]
