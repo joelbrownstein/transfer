@@ -26,7 +26,7 @@ fi
 
 re='^[0-9]{5}$'
 if [[ $mjd =~ $re ]]; then
-    dir=${TRANSFER_MIRROR_BACKUP}/archive/$obs/
+    dir=${TRANSFER_MIRROR_BACKUP}/archive/$obs/$mjd
     if [ -d "$dir" ]; then
         echo "Found $dir"
     else
