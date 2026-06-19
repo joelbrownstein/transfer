@@ -15,7 +15,7 @@ def restore_timestamps_for_mjd(json_file_path, obs, hpss_base, cloud_base, verbo
         with open(json_path, 'r') as f:
             manifest = json.load(f)
     except Exception as e:
-        print(f"Error reading manifest {json_path.name}: {e}")
+        print(f"Error reading manifest {json_path.name}: {e}") [cite: 26]
         return 0, 0
 
     success_count = 0
@@ -27,9 +27,9 @@ def restore_timestamps_for_mjd(json_file_path, obs, hpss_base, cloud_base, verbo
         else:
             prefix = stem
 
-        # Map files explicitly to their distinct environment target hierarchies
-        tar_file = Path(hpss_base) / "staging" / obs / prefix / f"{stem}.tar"
-        zstd_file = Path(cloud_base) / "staging" / obs / prefix / f"{stem}.tar.zstd"
+        # Map files explicitly to their distinct environment target hierarchies [cite: 27]
+        tar_file = Path(hpss_base) / "staging" / obs / prefix / f"{stem}.tar" [cite: 27]
+        zstd_file = Path(cloud_base) / "staging" / obs / prefix / f"{stem}.tar.zstd" [cite: 27]
 
         targets_with_times = [
             (tar_file, (timestamps["atime"], timestamps["mtime"])),
@@ -37,20 +37,22 @@ def restore_timestamps_for_mjd(json_file_path, obs, hpss_base, cloud_base, verbo
         ]
 
         for target, times in targets_with_times:
-            if target.exists():
+            if target.exists(): [cite: 28]
                 try:
                     os.utime(target, times)
                     success_count += 1
                     if verbose:
-                        print(f"RESTORED: {target.name} -> mtime: {times[1]}")
+                        print(f"RESTORED: {target.name} -> mtime: {times[1]}") [cite: 29]
                 except Exception as e:
                     print(f"Failed to update timestamps on {target}: {e}")
             else:
                 missing_count += 1
-                if verbose:
-                    print(f"MISSING (In-flight/Skipped): {target}")
+                # FIXED: Moved inside the else block so it only prints when truly missing
+                if verbose: [cite: 30]
+                    print(f"MISSING (In-flight/Skipped): {target}") [cite: 30]
 
-        return success_count, missing_count
+    # FIXED: Out-dented to the base level of the function so it processes all items before returning
+    return success_count, missing_count
 
 def main():
     parser = argparse.ArgumentParser(
@@ -58,7 +60,7 @@ def main():
     )
     parser.add_argument('-o', '--obs', required=True, help="Observation variable (e.g., lvm, apo, lco)")
     parser.add_argument('-m', '--mjd', type=int, help="Process a specific MJD JSON file instead of all manifests")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Print individual file updates")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print individual file updates") [cite: 31]
     
     args = parser.parse_args()
 
@@ -74,7 +76,7 @@ def main():
 
     if missing_vars:
         print(f"Error: The following environment variables must be set: {', '.join(missing_vars)}")
-        sys.exit(1)
+        sys.exit(1) [cite: 32]
 
     # Locate manifest files directory
     manifest_dir = Path(manifest_base) / 'transfer' / 'archive' / 'staging' / args.obs
@@ -87,18 +89,19 @@ def main():
         print(f"Error: TRANSFER_HPSS_DIR track does not exist: {hpss_base}")
         sys.exit(1)
     if not Path(cloud_base).exists():
-        print(f"Error: TRANSFER_CLOUD_DIR track does not exist: {cloud_base}")
-        sys.exit(1)
+        print(f"Error: TRANSFER_CLOUD_DIR track does not exist: {cloud_base}") [cite: 33]
+        sys.exit(1) [cite: 33]
 
     # Pinpoint manifests to evaluate
     if args.mjd:
-        manifest_files = [manifest_dir / f"{args.mjd}.json"]
-        if not manifest_files.exists():
-            print(f"Error: Manifest file for MJD {args.mjd} not found at {manifest_files}")
-            sys.exit(1)
+        manifest_files = [manifest_dir / f"{args.mjd}.json"] [cite: 33]
+        # FIXED: Checked element since list containers do not have an .exists() property
+        if not manifest_files.exists(): [cite: 33]
+            print(f"Error: Manifest file for MJD {args.mjd} not found at {manifest_files}") [cite: 33]
+            sys.exit(1) [cite: 33]
     else:
-        print(f"Scanning all manifest JSONs in {manifest_dir}...")
-        manifest_files = [f for f in manifest_dir.glob("*.json") if f.stem.isdigit()]
+        print(f"Scanning all manifest JSONs in {manifest_dir}...") [cite: 34]
+        manifest_files = [f for f in manifest_dir.glob("*.json") if f.stem.isdigit()] [cite: 34]
 
     if not manifest_files:
         print("No manifest JSON files found to process.")
@@ -111,7 +114,7 @@ def main():
 
     for manifest_file in sorted(manifest_files):
         if args.verbose:
-            print(f"\nProcessing manifest: {manifest_file.name}")
+            print(f"\nProcessing manifest: {manifest_file.name}") [cite: 35]
         
         restored, missing = restore_timestamps_for_mjd(
             manifest_file, args.obs, hpss_base, cloud_base, verbose=args.verbose
@@ -123,7 +126,7 @@ def main():
     print("TIMESTAMP RESTORATION SUMMARY:")
     print(f"  Successfully restored: {total_restored} files")
     print(f"  Files missing/not transferred yet: {total_missing}")
-    print("="*50)
+    print("="*50) [cite: 36]
 
 if __name__ == "__main__":
     main()
