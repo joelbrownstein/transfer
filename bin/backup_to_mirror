@@ -29,7 +29,7 @@ def check_dependencies():
         print(f"Error: Missing required system dependencies: {', '.join(missing)}")
         sys.exit(1)
 
-def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=False):
+def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     """
     Decompresses .tgz to a .tar, then compresses to .tar.zstd (level 12).
     Uses ATOMIC writes (.part files) to prevent corrupted states on failure.
@@ -43,7 +43,7 @@ def process_file(tgz_path_str, obs, nfs1_base, vast_base, force=False, verbose=F
         prefix = stem
 
     # Define the output directory paths
-    tar_dir = Path(nfs1_base) / "transfer" / "hpss" / "staging" / obs / prefix
+    tar_dir = Path(vast_base) / "transfer" / "hpss" / "staging" / obs / prefix
     zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / prefix
 
     tar_dir.mkdir(parents=True, exist_ok=True)
@@ -127,12 +127,10 @@ def main():
 
     # Environment variables mapping
     mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
-    nfs1_base = os.environ.get("TRANSFER_SCRATCH_NFS1")
     vast_base = os.environ.get("TRANSFER_SCRATCH_VAST")
     
     missing_vars = []
     if not mirror_backup: missing_vars.append("TRANSFER_MIRROR_BACKUP")
-    if not nfs1_base: missing_vars.append("TRANSFER_SCRATCH_NFS1")
     if not vast_base: missing_vars.append("TRANSFER_SCRATCH_VAST")
     
     if missing_vars:
@@ -164,12 +162,11 @@ def main():
 
     print(f"Found {total_files} total .tgz files. Launching 64-core processing pool...")
 
-    max_workers = min(16, os.cpu_count())
+    max_workers = min(32, os.cpu_count())
 
     worker_func = partial(
         process_file, 
         obs=args.obs, 
-        nfs1_base=nfs1_base, 
         vast_base=vast_base, 
         force=args.force,
         verbose=args.verbose
