@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+while getopts m:o:v args
+do
+    case "${args}" in
+        m) mjd=${OPTARG};;
+        o) obs=${OPTARG};;
+        v) verbose=true;;
+    esac
+done
+
+if [ -z "${TRANSFER_MIRROR_BACKUP}" ]" ]; then
+    echo "Error: TRANSFER_MIRROR_BACKUP environment variable must be set."
+    exit 1
+fi
+
+if [ -z "$obs" ]" ]; then
+    echo "Error: obs variable must be set by -o keyword."
+    exit 1
+fi
+
+if [ -z "${mjd}" ]; then
+    NOW=$(date +"%Y%m%d")
+    mjd=$(( ( $(date +%s -d "$NOW") / 86400 ) + 40587 ))
+fi
+
+re='^[0-9]{5}$'
+if [[ $mjd =~ $re ]]; then
+    dir=${TRANSFER_MIRROR_BACKUP}/archive/$obs/
+    if [ -d "$dir" ]]; then
+        echo "Found $dir"
+    else
+        echo "MISSING mjd=$mjd, nonexistent path $dir"
+    fi
+else
+    echo "BACKUP TO MIRROR> invalid mjd: $mjd"
+    exit 6
+fi
