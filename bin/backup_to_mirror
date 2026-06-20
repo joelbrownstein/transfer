@@ -74,11 +74,20 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
     tar_tmp = tar_part_dir / f"{stem}.tar.part"
     zstd_tmp = zstd_part_dir / f"{stem}.tar.zstd.part"
 
+    # Done file paths
+    tar_done = tar_part_dir / f"{stem}.tar.done"
+    zstd_done = zstd_part_dir / f"{stem}.tar.zstd.done"
+
     # Pre-check existence if force is False
     if not force:
         if tar_path.exists() and zstd_path.exists():
             if verbose:
                 tqdm.write(f"[{stem}] SKIPPED: Both target files already exist.")
+            # Still return original timestamps so they get logged in the JSON manifest!
+            return ("SKIPPED", mjd, stem, atime, mtime)
+        elif tar_done.exists() and zstd_done.exists():
+            if verbose:
+                tqdm.write(f"[{stem}] SKIPPED: Both target files already done.")
             # Still return original timestamps so they get logged in the JSON manifest!
             return ("SKIPPED", mjd, stem, atime, mtime)
 
@@ -96,6 +105,7 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
         
         # Success: Move .part file out of the hidden dir to the final target location
         tar_tmp.replace(tar_path)
+        tar_done.touch()
         
         # 2. ATOMIC COMPRESSION: Compress .tar to .tar.zstd.part
         if verbose:
@@ -111,6 +121,7 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
         
         # Success: Move .part file out of the hidden dir to the final target location
         zstd_tmp.replace(zstd_path)
+        zstd_done.touch()
         
         if verbose:
             tqdm.write(f"[{stem}] SUCCESS: Extracted, compressed, and timestamps synchronized.")
