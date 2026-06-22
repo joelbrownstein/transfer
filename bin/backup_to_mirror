@@ -209,14 +209,18 @@ def main():
             zstd_done = zstd_part_dir / f"{stem}.tar.zstd.done"
 
             # Validate structural presence across actual tracks or tracking tags
-            if (tar_path.exists() and zstd_path.exists()) or (tar_done.exists() and zstd_done.exists()):
+            if tar_path.exists() and zstd_path.exists():
                 completed_count += 1
                 if args.verbose:
-                    print(f"[{stem}] Status: DONE (Target files or .done indicators exist)")
+                    print(f"[{stem}] Status: DONE (Target files)")
+            elif tar_done.exists() and zstd_done.exists():
+                completed_count += 1
+                if args.verbose:
+                    print(f"[{stem}] Status: DONE (.done indicators exist)")
             else:
                 pending_count += 1
                 if args.verbose:
-                    print(f"[{stem}] Status: PENDING (Requires processing)")
+                    print(f"[{stem}] Status: PENDING (No {tar_done} or {zstd_done})")
 
         print(f"\nTotal .tgz files evaluated: {total_files}")
         print(f"Already completed/succeeded: {completed_count}")
