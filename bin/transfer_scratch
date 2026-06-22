@@ -45,10 +45,13 @@ def get_locations(options = None):
     if options.verbose: print("SCRATCH> locations=%r" % locations)
     return locations
 
-locations = get_locations(options = options)
-if locations and options.mjdlist:
-    for options.mjd in options.mjdlist: transfer_scratch(options = options, locations = locations)
-else: transfer_scratch(options = options, locations = locations)
+if options.mjdlist:
+    for options.mjd in options.mjdlist:
+        locations = get_locations(options = options)
+        transfer_scratch(options = options, locations = locations)
+else:
+    locations = get_locations(options = options)
+    transfer_scratch(options = options, locations = locations)
 
 """
 debug = True
@@ -58,4 +61,7 @@ if debug:
     options.observatory = 'lvm'
     options.sections = ['lvm_agcam']
     options.mjd = 61208
+    
+transfer_scratch -o apo -l transfer/cloud/staging -M 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
+transfer_scratch -o lco transfer/cloud/staging -M 61209 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
 """
