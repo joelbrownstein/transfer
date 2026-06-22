@@ -64,10 +64,10 @@ if debug:
     
 transfer_scratch -o apo -l transfer/cloud/staging -M 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
 transfer_scratch -o lco transfer/cloud/staging -M 61209 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
-transfer_scratch -o lco transfer/cloud/staging -M 61209 61210 61211 61212 -v -S lvm_agcam lvm_spectro
+transfer_scratch -o lvm transfer/cloud/staging -m 61212 -v -S lvm_agcam lvm_spectro
 
 transfer_scratch -o apo -l transfer/hpss/staging -M 61209 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
 transfer_scratch -o lco transfer/hpss/staging -M 61209 61210 61211 61212 -v -S apogee fcam gcam spectro sos quickred
-transfer_scratch -o lco transfer/hpss/staging -M 61209 61210 61211 61212 -v -S lvm_agcam lvm_spectro
+transfer_scratch -o lvm transfer/hpss/staging -m 61212 -v -S lvm_agcam lvm_spectro
 
 """
