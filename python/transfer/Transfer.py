@@ -243,7 +243,7 @@ class Transfer:
                 message = "ERROR! Transfer is not ready for BACKUP""
             """
             if self.ready:
-                mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
+                mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
                 if mirror.ready:
                     staging_ext = {'hpss':'.tar', 'cloud': '.tar.zstd'}
                     for mirror.section in self.sections:
@@ -251,6 +251,8 @@ class Transfer:
                             tranfer_staging = 'transfer/%s/staging' % staging
                             location = join(self.config.observatory, mirror.section)
                             mirror.location = join(tranfer_staging, location, "%s_%s%s" % (self.mjd, mirror.section, ext))
+                            mirror.set_scratch()
+                            mirror.set_base_dir()
                             mirror.append_item()
                             mirror.execute_transfer()
                             if mirror.transfer: mirror.wait()
