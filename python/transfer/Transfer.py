@@ -244,6 +244,7 @@ class Transfer:
             """
             if self.ready:
                 mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
+                mirror.stage = mirror.stage.replace("mirror", "backup")
                 if mirror.ready:
                     staging_ext = {'hpss':'.tar', 'cloud': '.tar.zstd'}
                     for mirror.section in self.sections:

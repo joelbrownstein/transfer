@@ -421,7 +421,7 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        option_label = "transfer_mirror"
+        option_label = "transfer_mirror"#transfer.lco.lvm.mirror.61215
         if self.identifier: option_label += " %s" % self.identifier
         self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else option_label
         self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]
