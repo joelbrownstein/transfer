@@ -254,7 +254,7 @@ class Transfer:
                             mirror.location = join(tranfer_staging, location, "%s_%s%s" % (self.mjd, mirror.section, ext))
                             mirror.set_scratch()
                             mirror.set_base_dir()
-                            mirror.append_item()
+                            mirror.append_item(staging = staging)
                     print("BAXKUP> item=%r" % mirror.item)
                     mirror.execute_transfer()
                     if mirror.transfer: mirror.wait()

@@ -132,11 +132,12 @@ class Mirror:
         try: self.user = environ['TRANSFER_GLOBUS_USER']
         except Exception as e: self.user = None
 
-    def append_item(self, label = None, recursive = None):
+    def append_item(self, label = None, staging = None, recursive = None):
         if self.item is None: self.item = OrderedDict()
         if not label:
             label = "%s-" % self.section if self.section else ""
             if self.mjd: label += "mjd-%r" % self.mjd
+            if staging: label += "-%s" % staging
             else: label += "item-%03d" % len(self.item)
         if self.base_dir and self.location:
             source = join(self.base_dir['source'], self.location)
