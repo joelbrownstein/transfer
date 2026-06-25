@@ -90,7 +90,7 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
             return ("SKIPPED", mjd, stem, atime, mtime)
 
     try:
-        if force or not tar_path_exists():
+        if force or not tar_path.exists():
             # 1. ATOMIC EXTRACTION: Extract to .part file first
             if verbose:
                 tqdm.write(f"[{stem}] Decompressing source .tgz archive to temporary .part file...")
@@ -140,6 +140,8 @@ def main():
     parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
     parser.add_argument('-m', '--mjd', type=int, help="Specific MJD to process")
     parser.add_argument('-a', '--all', action='store_true', help="Process ALL mjds in the obs directory")
+    parser.add_argument('-j', '--min-mjd', type=int, help="Minimum MJD to process (inclusive)")
+    parser.add_argument('-J', '--max-mjd', type=int, help="Maximum MJD to process (inclusive)")
     parser.add_argument('-o', '--obs', required=True, help="Observation variable (required)")
     parser.add_argument('-f', '--force', action='store_true', help="Force overwrite output files if they already exist")
     parser.add_argument('-v', '--verbose', action='store_true', help="Print granular file-level steps above the progress bar")
@@ -164,9 +166,24 @@ def main():
     base_dir = Path(mirror_backup) / "archive" / args.obs
     
     directories_to_scan = []
-    if args.all:
-        print(f"Scanning all MJDs in {base_dir}...")
-        directories_to_scan = [d for d in base_dir.iterdir() if d.is_dir() and d.name.isdigit()]
+    skipped_range_mjds = []
+    
+    # Range scanning logic
+    if args.all or args.min_mjd or args.max_mjd:
+        print(f"Scanning MJDs in {base_dir}...")
+        for d in base_dir.iterdir():
+            if d.is_dir() and d.name.isdigit():
+                mjd_val = int(d.name)
+                
+                # Apply range limits
+                if args.min_mjd and mjd_val < args.min_mjd:
+                    skipped_range_mjds.append(mjd_val)
+                    continue
+                if args.max_mjd and mjd_val > args.max_mjd:
+                    skipped_range_mjds.append(mjd_val)
+                    continue
+                
+                directories_to_scan.append(d)
     else:
         mjd = args.mjd if args.mjd else int(time.time() / 86400) + 40587
         target_dir = base_dir / str(mjd)
@@ -230,21 +247,34 @@ def main():
         print(f"Already completed/succeeded: {completed_count}")
         print(f"Pending processing tasks:   {pending_count}")
         
-        if unique_mjds:
+        if unique_mjds or args.min_mjd or args.max_mjd:
             print("\n" + "-"*50)
-            print("MJD SUMMARY")
+            print("MJD RANGE FILTER & SUMMARY")
             print("-"*50)
-            print(f"Total Unique MJDs: {len(unique_mjds)}")
-            print(f"Minimum MJD:       {min(unique_mjds)}")
-            print(f"Maximum MJD:       {max(unique_mjds)}")
-            print(f"MJD List:          {sorted(list(unique_mjds))}")
+            
+            # Print Range Limits Data First
+            if args.min_mjd or args.max_mjd:
+                min_str = args.min_mjd if args.min_mjd else "None"
+                max_str = args.max_mjd if args.max_mjd else "None"
+                print(f"Filter Bounds Applied: Min={min_str}, Max={max_str}")
+                print(f"MJDs Skipped:          {len(skipped_range_mjds)} (Outside bounds)")
+                if args.verbose and skipped_range_mjds:
+                    print(f"Skipped List:          {sorted(skipped_range_mjds)}")
+                print("-" * 30)
+
+            # Print Standard Stats
+            print(f"Total Unique Included: {len(unique_mjds)}")
+            if unique_mjds:
+                print(f"Minimum MJD Included:  {min(unique_mjds)}")
+                print(f"Maximum MJD Included:  {max(unique_mjds)}")
+                print(f"Included MJD List:     {sorted(list(unique_mjds))}")
             
         print("="*50)
         sys.exit(0)
 
     # Calculate optimal workers and print dynamic status
     max_workers = min(32, os.cpu_count())
-    print(f"Found {total_files} total .tgz files.\nLaunching {max_workers}-worker processing pool...")
+    print(f"Found {total_files} total .tgz files in range.\nLaunching {max_workers}-worker processing pool...")
 
     worker_func = partial(
         process_file, 
