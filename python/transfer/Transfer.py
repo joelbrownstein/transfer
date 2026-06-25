@@ -247,14 +247,15 @@ class Transfer:
                 if mirror.ready:
                     staging_ext = {'hpss':'.tar', 'cloud': '.tar.zstd'}
                     for mirror.section in self.sections:
+                        observatory = "lvm" if mirror.section.startswith("lvm") else self.config.observatory
                         for staging, ext in staging_ext.items():
                             tranfer_staging = 'transfer/%s/staging' % staging
-                            observatory = "lvm" if mirror.section.startswith("lvm") else self.config.observatory
                             location = join(observatory, mirror.section)
                             mirror.location = join(tranfer_staging, location, "%s_%s%s" % (self.mjd, mirror.section, ext))
                             mirror.set_scratch()
                             mirror.set_base_dir()
                             mirror.append_item()
+                    print("BAXKUP> item=%r")
                     mirror.execute_transfer()
                     if mirror.transfer: mirror.wait()
                     else:
