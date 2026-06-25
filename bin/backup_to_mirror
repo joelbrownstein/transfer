@@ -90,18 +90,19 @@ def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
             return ("SKIPPED", mjd, stem, atime, mtime)
 
     try:
-        # 1. ATOMIC EXTRACTION: Extract to .part file first
-        if verbose:
-            tqdm.write(f"[{stem}] Decompressing source .tgz archive to temporary .part file...")
-        
-        with open(tar_tmp, 'wb') as tar_out:
-            proc1 = subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, stderr=subprocess.PIPE)
-            if proc1.returncode != 0:
-                err_msg = proc1.stderr.decode().strip()
-                raise RuntimeError(f"gzip failed: {err_msg}")
-        
-        # Success: Move .part file out of the hidden dir to the final target location
-        tar_tmp.replace(tar_path)
+        if force or not tar_path_exists():
+            # 1. ATOMIC EXTRACTION: Extract to .part file first
+            if verbose:
+                tqdm.write(f"[{stem}] Decompressing source .tgz archive to temporary .part file...")
+            
+            with open(tar_tmp, 'wb') as tar_out:
+                proc1 = subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, stderr=subprocess.PIPE)
+                if proc1.returncode != 0:
+                    err_msg = proc1.stderr.decode().strip()
+                    raise RuntimeError(f"gzip failed: {err_msg}")
+            
+            # Success: Move .part file out of the hidden dir to the final target location
+            tar_tmp.replace(tar_path)
         tar_done.touch()
         
         # 2. ATOMIC COMPRESSION: Compress .tar to .tar.zstd.part
