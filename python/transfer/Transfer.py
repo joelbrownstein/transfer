@@ -240,7 +240,7 @@ class Transfer:
                 chdir(oldwd)
             else:
                 self.ready = False
-                message = "ERROR! Transfer is not ready for BACKUP""
+                message = "ERROR! Transfer is not ready for BACKUP"
             if self.ready:
                 mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
                 mirror.stage = mirror.stage.replace("mirror", "backup")
