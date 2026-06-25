@@ -255,7 +255,7 @@ class Transfer:
                             mirror.set_scratch()
                             mirror.set_base_dir()
                             mirror.append_item()
-                    print("BAXKUP> item=%r")
+                    print("BAXKUP> item=%r" % mirror.item)
                     mirror.execute_transfer()
                     if mirror.transfer: mirror.wait()
                     else:
