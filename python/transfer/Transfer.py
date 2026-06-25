@@ -255,11 +255,11 @@ class Transfer:
                             mirror.set_scratch()
                             mirror.set_base_dir()
                             mirror.append_item()
-                        mirror.execute_transfer()
-                        if mirror.transfer: mirror.wait()
-                        else:
-                            self.ready = False
-                            message = "ERROR! Globus is not ready for BACKUP to MIRROR"
+                    mirror.execute_transfer()
+                    if mirror.transfer: mirror.wait()
+                    else:
+                        self.ready = False
+                        message = "ERROR! Globus is not ready for BACKUP to MIRROR"
             if self.ready: self.summary.save(stage=self.stage, status='success')
             else:
                 logger.critical(message)
