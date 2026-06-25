@@ -227,6 +227,7 @@ class Transfer:
     def run_backup(self):
         if self.backup and self.ready:
             self.stage = 'backup'
+            message = None
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
             backup = Backup(staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
@@ -237,10 +238,32 @@ class Transfer:
                     backup.copy_to_hpss_staging()
                     backup.zstd_to_cloud_staging()
                 chdir(oldwd)
-            else: self.ready = False
+            else:
+                self.ready = False
+                message = "ERROR! Transfer is not ready for BACKUP""
+            if self.ready:
+                mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
+                mirror.stage = mirror.stage.replace("mirror", "backup")
+                mirror.set_options(verify = True, preserve_mtime = True, fail_on_quota_errors = True)
+                if mirror.ready:
+                    staging_ext = {'hpss':'.tar', 'cloud': '.tar.zstd'}
+                    for mirror.section in self.sections:
+                        observatory = "lvm" if mirror.section.startswith("lvm") else self.config.observatory
+                        for staging, ext in staging_ext.items():
+                            tranfer_staging = 'transfer/%s/staging' % staging
+                            location = join(observatory, mirror.section)
+                            mirror.location = join(tranfer_staging, location, "%s_%s%s" % (self.mjd, mirror.section, ext))
+                            mirror.set_scratch()
+                            mirror.set_base_dir()
+                            mirror.append_item(staging = staging)
+                    mirror.execute_transfer()
+                    if mirror.transfer: mirror.wait()
+                    else:
+                        self.ready = False
+                        message = "ERROR! Globus is not ready for BACKUP to MIRROR"
             if self.ready: self.summary.save(stage=self.stage, status='success')
             else:
-                logger.critical("ERROR! Remote is not ready for BACKUP")
+                logger.critical(message)
                 self.summary.save(stage=self.stage, status='failure')
 
     def run_mirror(self):

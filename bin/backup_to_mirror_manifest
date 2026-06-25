@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+import os
+import sys
+import json
+import argparse
+import traceback
+from pathlib import Path
+
+def restore_timestamps_for_mjd(json_file_path, target_base_dir, verbose=False):
+    """
+    Parses a single MJD JSON manifest and updates the matching .tar and .tar.zstd
+    files found within their respective observatory prefix staging directories.
+    """
+    json_path = Path(json_file_path)
+    try:
+        with open(json_path, 'r') as f:
+            manifest = json.load(f)
+    except Exception as e:
+        print(f"Error reading manifest {json_path.name}: {e}")
+        return 0, 0
+
+    success_count = 0
+    missing_count = 0
+
+    for stem, timestamps in manifest.items():
+        if '_' in stem:
+            _, prefix = stem.split('_', 1)
+        else:
+            prefix = stem
+
+        # Reconstruct the exact final directory paths matching the VAST structure
+        # e.g., target_base_dir / hpss / staging / lvm / lvm_spectro / 61203_lvm_spectro.tar
+        tar_file = Path(target_base_dir) / "hpss" / "staging" / prefix / f"{stem}.tar"
+        zstd_file = Path(target_base_dir) / "cloud" / "staging" / prefix / f"{stem}.tar.zstd"
+
+        targets = [tar_file, zstd_file]
+        times = (timestamps["atime"], timestamps["mtime"])
+
+        for target in targets:
+            if target.exists():
+                try:
+                    os.utime(target, times)
+                    success_count += 1
+                    if verbose:
+                        print(f"RESTORED: {target.name} -> mtime: {times[1]}")
+                except Exception as e:
+                    print(f"Failed to update timestamps on {target}: {e}")
+            else:
+                missing_count += 1
+                if verbose:
+                    print(f"MISSING (Skipped): {target}")
+
+    return success_count, missing_count
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Sync original VAST archive timestamps onto transferred JHU files using JSON manifests."
+    )
+    parser.add_argument('-o', '--obs', required=True, help="Observation variable (e.g., lvm, apo, lco)")
+    parser.add_argument('-t', '--target-base', required=True, 
+                        help="The base target path at JHU where 'hpss' and 'cloud' folders reside")
+    parser.add_argument('-m', '--mjd', type=int, help="Process a specific MJD JSON file instead of all manifests")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print individual file updates")
+    
+    args = parser.parse_args()
+
+    # Locate the manifest directory on the JHU side
+    manifest_base = os.environ.get("TRANSFER_MIRROR_MANIFEST_DIR")
+    if not manifest_base:
+        print("Error: The 'TRANSFER_MIRROR_MANIFEST_DIR' environment variable must be set.")
+        sys.exit(1)
+
+    manifest_dir = Path(manifest_base) / 'transfer' / 'archive' / 'staging' / args.obs
+    if not manifest_dir.exists():
+        print(f"Error: Manifest directory does not exist: {manifest_dir}")
+        sys.exit(1)
+
+    target_base = Path(args.target_base)
+    if not target_base.exists():
+        print(f"Error: Target base directory does not exist at JHU: {target_base}")
+        sys.exit(1)
+
+    # Determine which manifests to process
+    if args.mjd:
+        manifest_files = [manifest_dir / f"{args.mjd}.json"]
+        if not manifest_files.exists():
+            print(f"Error: Manifest file for MJD {args.mjd} not found at {manifest_files}")
+            sys.exit(1)
+    else:
+        print(f"Scanning all manifest JSONs in {manifest_dir}...")
+        manifest_files = [f for f in manifest_dir.glob("*.json") if f.stem.isdigit()]
+
+    if not manifest_files:
+        print("No manifest JSON files found to process.")
+        sys.exit(0)
+
+    total_restored = 0
+    total_missing = 0
+
+    print(f"Starting timestamp restoration for '{args.obs}' architecture across {len(manifest_files)} manifest(s)...")
+
+    for manifest_file in sorted(manifest_files):
+        if args.verbose:
+            print(f"\nProcessing manifest: {manifest_file.name}")
+        
+        restored, missing = restore_timestamps_for_mjd(manifest_file, target_base, verbose=args.verbose)
+        total_restored += restored
+        total_missing += missing
+
+    print("\n" + "="*50)
+    print("TIMESTAMP RESTORATION SUMMARY:")
+    print(f"  Successfully restored: {total_restored} files")
+    print(f"  Files missing/not transferred yet: {total_missing}")
+    print("="*50)
+
+if __name__ == "__main__":
+    main()

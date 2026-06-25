@@ -132,11 +132,12 @@ class Mirror:
         try: self.user = environ['TRANSFER_GLOBUS_USER']
         except Exception as e: self.user = None
 
-    def append_item(self, label = None, recursive = None):
+    def append_item(self, label = None, staging = None, recursive = None):
         if self.item is None: self.item = OrderedDict()
         if not label:
             label = "%s-" % self.section if self.section else ""
             if self.mjd: label += "mjd-%r" % self.mjd
+            if staging: label += "-%s" % staging
             else: label += "item-%03d" % len(self.item)
         if self.base_dir and self.location:
             source = join(self.base_dir['source'], self.location)
@@ -420,7 +421,7 @@ class Mirror:
 
     def set_options(self, label=None, sync=None, preserve_mtime=False, fail_on_quota_errors=False, verify=False, delete=False, encrypt=False):
         self.options = {}
-        option_label = "transfer_mirror"
+        option_label = "transfer_mirror"#transfer.lco.lvm.mirror.61215
         if self.identifier: option_label += " %s" % self.identifier
         self.options['label'] = label if label else "%s.%s" % ( self.stage, self.mjd) if self.stage and self.mjd else self.stage if self.stage else option_label
         self.options['sync'] = sync if sync in self.sync_options else self.sync_options[0]

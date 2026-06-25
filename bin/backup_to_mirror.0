@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+import os
+import sys
+import time
+import json
+import shutil
+import argparse
+import logging
+import traceback
+import subprocess
+import termios
+from pathlib import Path
+from collections import defaultdict
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
+
+# Setup a dedicated failure logger for tracking errors cleanly
+failure_logger = logging.getLogger("failures")
+failure_logger.setLevel(logging.ERROR)
+handler = logging.FileHandler("failures.log", mode="a")
+handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+failure_logger.addHandler(handler)
+
+def check_dependencies():
+    """Ensure required system binaries exist before starting the pool."""
+    missing = []
+    if not shutil.which("gzip"): missing.append("gzip")
+    if not shutil.which("zstd"): missing.append("zstd")
+    if missing:
+        print(f"Error: Missing required system dependencies: {', '.join(missing)}")
+        sys.exit(1)
+
+def process_file(tgz_path_str, obs, vast_base, force=False, verbose=False):
+    """
+    Decompresses .tgz to a .tar, then compresses to .tar.zstd (level 12).
+    Uses ATOMIC writes (.part files) placed in an isolated 'partial' directory 
+    so Globus ignores them mid-transfer. 
+    Timestamps are left at current time, but the original ones are returned for the manifest.
+    """
+    tgz_path = Path(tgz_path_str)
+    stem = tgz_path.stem  # e.g., '61203_lvm_agcam'
+    
+    if '_' in stem:
+        _, section = stem.split('_', 1)
+        mjd = stem.split('_')
+    else:
+        section = stem
+        mjd = "unknown_mjd"
+
+    # Grab original timestamps to pass back to the manifest builder
+    stat_info = tgz_path.stat()
+    atime = stat_info.st_atime
+    mtime = stat_info.st_mtime
+
+    # Define the output directory paths entirely on VAST
+    tar_dir = Path(vast_base) / "transfer" / "hpss" / "staging" / obs / section
+    zstd_dir = Path(vast_base) / "transfer" / "cloud" / "staging" / obs / section
+
+    # Isolate temporary .part files up one directory level into a "partial" folder
+    tar_part_dir = Path(vast_base) / "transfer" / "hpss" / "partial" / obs / section
+    zstd_part_dir = Path(vast_base) / "transfer" / "cloud" / "partial" / obs / section
+
+    tar_dir.mkdir(parents=True, exist_ok=True)
+    zstd_dir.mkdir(parents=True, exist_ok=True)
+    tar_part_dir.mkdir(parents=True, exist_ok=True)
+    zstd_part_dir.mkdir(parents=True, exist_ok=True)
+
+    # Final target paths
+    tar_path = tar_dir / f"{stem}.tar"
+    zstd_path = zstd_dir / f"{stem}.tar.zstd"
+
+    # Temporary atomic paths hidden in the partial directory
+    tar_tmp = tar_part_dir / f"{stem}.tar.part"
+    zstd_tmp = zstd_part_dir / f"{stem}.tar.zstd.part"
+
+    # Done file paths
+    tar_done = tar_part_dir / f"{stem}.tar.done"
+    zstd_done = zstd_part_dir / f"{stem}.tar.zstd.done"
+
+    # Pre-check existence if force is False
+    if not force:
+        if tar_path.exists() and zstd_path.exists():
+            if verbose:
+                tqdm.write(f"[{stem}] SKIPPED: Both target files already exist.")
+            # Still return original timestamps so they get logged in the JSON manifest!
+            return ("SKIPPED", mjd, stem, atime, mtime)
+        elif tar_done.exists() and zstd_done.exists():
+            if verbose:
+                tqdm.write(f"[{stem}] SKIPPED: Both target files already done.")
+            # Still return original timestamps so they get logged in the JSON manifest!
+            return ("SKIPPED", mjd, stem, atime, mtime)
+
+    try:
+        # 1. ATOMIC EXTRACTION: Extract to .part file first
+        if verbose:
+            tqdm.write(f"[{stem}] Decompressing source .tgz archive to temporary .part file...")
+        
+        with open(tar_tmp, 'wb') as tar_out:
+            # Capture stderr to prevent it from corrupting the terminal UI
+            proc1 = subprocess.run(['gzip', '-d', '-c', str(tgz_path)], stdout=tar_out, stderr=subprocess.PIPE)
+            if proc1.returncode != 0:
+                err_msg = proc1.stderr.decode().strip()
+                raise RuntimeError(f"gzip failed: {err_msg}")
+        
+        # Success: Move .part file out of the hidden dir to the final target location
+        tar_tmp.replace(tar_path)
+        tar_done.touch()
+        
+        # 2. ATOMIC COMPRESSION: Compress .tar to .tar.zstd.part
+        if verbose:
+            tqdm.write(f"[{stem}] Compressing .tar archive to level-12 temporary .zstd.part...")
+            
+        # Always force overwrite the temp file just in case a previous run left a .part file
+        zstd_cmd = ['zstd', '-q', '-12', '-T1', '-f', str(tar_path), '-o', str(zstd_tmp)]
+        
+        proc2 = subprocess.run(zstd_cmd, stderr=subprocess.PIPE)
+        if proc2.returncode != 0:
+            err_msg = proc2.stderr.decode().strip()
+            raise RuntimeError(f"zstd failed: {err_msg}")
+        
+        # Success: Move .part file out of the hidden dir to the final target location
+        zstd_tmp.replace(zstd_path)
+        zstd_done.touch()
+        
+        if verbose:
+            tqdm.write(f"[{stem}] SUCCESS: Extracted, compressed, and timestamps synchronized.")
+            
+        return ("SUCCESS", mjd, stem, atime, mtime)
+    
+    except Exception as e:
+        # CLEANUP: Ensure partial files are deleted on any failure/interruption
+        if tar_tmp.exists(): tar_tmp.unlink()
+        if zstd_tmp.exists(): zstd_tmp.unlink()
+        
+        error_msg = f"ERROR processing {tgz_path_str}: {str(e)}\n{traceback.format_exc()}"
+        failure_logger.error(error_msg)
+        return ("FAILURE", stem)
+
+def main():
+    check_dependencies()
+
+    parser = argparse.ArgumentParser(description="Parallel Tar/Zstd generator for SDSS mirror backups.")
+    parser.add_argument('-m', '--mjd', type=int, help="Specific MJD to process")
+    parser.add_argument('-a', '--all', action='store_true', help="Process ALL mjds in the obs directory")
+    parser.add_argument('-o', '--obs', required=True, help="Observation variable (required)")
+    parser.add_argument('-f', '--force', action='store_true', help="Force overwrite output files if they already exist")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print granular file-level steps above the progress bar")
+    
+    args = parser.parse_args()
+
+    # Environment variables mapping
+    mirror_backup = os.environ.get("TRANSFER_MIRROR_BACKUP")
+    vast_base = os.environ.get("TRANSFER_SCRATCH_VAST")
+    manifest_base = os.environ.get("TRANSFER_MIRROR_MANIFEST_DIR")
+    
+    missing_vars = []
+    if not mirror_backup: missing_vars.append("TRANSFER_MIRROR_BACKUP")
+    if not vast_base: missing_vars.append("TRANSFER_SCRATCH_VAST")
+    if not manifest_base: missing_vars.append("TRANSFER_MIRROR_MANIFEST_DIR")
+    
+    if missing_vars:
+        print(f"Error: The following environment variables must be set: {', '.join(missing_vars)}")
+        sys.exit(1)
+
+    base_dir = Path(mirror_backup) / "archive" / args.obs
+    
+    directories_to_scan = []
+    if args.all:
+        print(f"Scanning all MJDs in {base_dir}...")
+        directories_to_scan = [d for d in base_dir.iterdir() if d.is_dir() and d.name.isdigit()]
+    else:
+        mjd = args.mjd if args.mjd else int(time.time() / 86400) + 40587
+        target_dir = base_dir / str(mjd)
+        if not target_dir.exists():
+            print(f"MISSING mjd={mjd}, nonexistent path {target_dir}")
+            sys.exit(6)
+        directories_to_scan = [target_dir]
+
+    files_to_process = []
+    for d in directories_to_scan:
+        files_to_process.extend(list(d.glob("*.tgz")))
+
+    total_files = len(files_to_process)
+    if total_files == 0:
+        print("No .tgz files found to process.")
+        sys.exit(0)
+
+    # Calculate optimal workers and print dynamic status
+    max_workers = min(32, os.cpu_count())
+    print(f"Found {total_files} total .tgz files. Launching {max_workers}-worker processing pool...")
+
+    worker_func = partial(
+        process_file, 
+        obs=args.obs, 
+        vast_base=vast_base, 
+        force=args.force,
+        verbose=args.verbose
+    )
+
+    success_count = 0
+    failure_count = 0
+    skipped_count = 0
+    
+    # Thread-safe dictionary collection point for the manifest data
+    manifest_data = defaultdict(dict)
+
+    fd = sys.stdin.fileno()
+    is_tty = os.isatty(fd)
+    old_settings = None
+
+    if is_tty:
+        try:
+            old_settings = termios.tcgetattr(fd)
+            new_settings = termios.tcgetattr(fd)
+            # FIX applied to target the local mode flag correctly instead of returning a TypeError
+            new_settings[3] = new_settings[3] & ~termios.ECHOCTL
+            termios.tcsetattr(fd, termios.TCSANOW, new_settings)
+        except Exception:
+            is_tty = False
+
+    try:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(worker_func, str(f)): f for f in files_to_process}
+            
+            try:
+                with tqdm(total=total_files, desc="Processing Backups", unit="file") as pbar:
+                    for future in as_completed(futures):
+                        result = future.result()
+                        status = result
+                        
+                        if status == "SUCCESS":
+                            _, mjd, stem, atime, mtime = result
+                            manifest_data[mjd][stem] = {"atime": atime, "mtime": mtime}
+                            success_count += 1
+                        elif status == "SKIPPED":
+                            _, mjd, stem, atime, mtime = result
+                            manifest_data[mjd][stem] = {"atime": atime, "mtime": mtime}
+                            skipped_count += 1
+                        else:
+                            failure_count += 1
+                            tqdm.write(f"FAILURE: {result[1]} (Logged to failures.log)")
+                        
+                        pbar.set_postfix(Success=success_count, Skipped=skipped_count, Failures=failure_count)
+                        pbar.update(1)
+                print("Processing complete!")
+            
+            except KeyboardInterrupt:
+                tqdm.write(f"\n\n[!] Received Ctrl+C. Force terminating all tasks safely. Cleaning up temp files...")
+                executor.shutdown(wait=False, cancel_futures=True)
+                sys.exit(130)
+
+    finally:
+        if is_tty and old_settings is not None:
+            termios.tcsetattr(fd, termios.TCSANOW, old_settings)
+
+    # Compile and write JSON Manifests
+    if manifest_data:
+        print("Writing timestamp manifest files...")
+        manifest_out_dir = Path(manifest_base) / 'transfer' / 'archive' / 'staging' / args.obs
+        manifest_out_dir.mkdir(parents=True, exist_ok=True)
+        
+        for mjd, files_data in manifest_data.items():
+            manifest_file = manifest_out_dir / f"{mjd}.json"
+            
+            # Load existing JSON if we are appending to an existing MJD pool
+            existing_data = {}
+            if manifest_file.exists():
+                try:
+                    with open(manifest_file, 'r') as f:
+                        existing_data = json.load(f)
+                except Exception:
+                    pass
+            
+            existing_data.update(files_data)
+            
+            # Use atomic write to ensure the JSON doesn't corrupt if interrupted
+            tmp_manifest = manifest_file.with_suffix('.json.part')
+            with open(tmp_manifest, 'w') as f:
+                json.dump(existing_data, f, indent=2)
+            tmp_manifest.replace(manifest_file)
+            
+        print(f"Successfully generated {len(manifest_data)} manifest file(s).")
+
+if __name__ == "__main__":
+    main()
