@@ -230,7 +230,7 @@ class Transfer:
             message = None
             self.logging.set_stage(stage=self.stage)
             logger = self.logging.logger
-            """backup = Backup(staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
+            backup = Backup(staging=self.config.staging, observatory=self.config.observatory, mode = self.config.mode, mjd=self.mjd, process=self.process, dir=self.logging.dir, logger=logger, verbose=self.verbose)
             if backup.ready:
                 oldwd = getcwd()
                 for backup.section in self.sections:
@@ -241,7 +241,6 @@ class Transfer:
             else:
                 self.ready = False
                 message = "ERROR! Transfer is not ready for BACKUP""
-            """
             if self.ready:
                 mirror = Mirror(staging=self.config.staging, observatory=self.config.observatory, mode=self.config.mode, mjd=self.mjd, process=self.process, log_dir=self.logging.dir, logger=logger, save_manifest=True, verbose=self.verbose)
                 mirror.stage = mirror.stage.replace("mirror", "backup")
