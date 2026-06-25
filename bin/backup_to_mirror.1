@@ -190,14 +190,11 @@ def main():
         print("="*50)
         completed_count = 0
         pending_count = 0
-        unique_mjds = set()
         
         for tgz_path in files_to_process:
             stem = tgz_path.stem
             if '_' in stem:
-                mjd_str, section = stem.split('_', 1)
-                if mjd_str.isdigit():
-                    unique_mjds.add(int(mjd_str))
+                _, section = stem.split('_', 1)
             else:
                 section = stem
                 
@@ -228,16 +225,6 @@ def main():
         print(f"\nTotal .tgz files evaluated: {total_files}")
         print(f"Already completed/succeeded: {completed_count}")
         print(f"Pending processing tasks:   {pending_count}")
-        
-        if unique_mjds:
-            print("\n" + "-"*50)
-            print("MJD SUMMARY")
-            print("-"*50)
-            print(f"Total Unique MJDs: {len(unique_mjds)}")
-            print(f"Minimum MJD:       {min(unique_mjds)}")
-            print(f"Maximum MJD:       {max(unique_mjds)}")
-            print(f"MJD List:          {sorted(list(unique_mjds))}")
-            
         print("="*50)
         sys.exit(0)
 
