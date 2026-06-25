@@ -249,7 +249,8 @@ class Transfer:
                     for mirror.section in self.sections:
                         for staging, ext in staging_ext.items():
                             tranfer_staging = 'transfer/%s/staging' % staging
-                            location = join(self.config.observatory, mirror.section)
+                            observatory = "lvm" if mirror.section.startswith("lvm") else self.config.observatory
+                            location = join(observatory, mirror.section)
                             mirror.location = join(tranfer_staging, location, "%s_%s%s" % (self.mjd, mirror.section, ext))
                             mirror.set_scratch()
                             mirror.set_base_dir()
